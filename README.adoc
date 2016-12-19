@@ -1,0 +1,155 @@
+:plugin-ver: 0.6.0
+= SWAMP Jenkins Plugin
+Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+{plugin-ver} {docdatetime}
+:toc:
+:numbered:
+
+== Prerequisites:
+The usage of this plugin requires that you already have the following:
+
+- A functional instance of Jenkins.
+  If you do not have a Jenkins installation, go to https://jenkins.io to get
+  Jenkins.
+  A good tutorial for how to set it up is at
+  http://www.tutorialspoint.com/jenkins/.
+- A valid SWAMP account.
+  If you do not have an account, go to https://continuousassurance.org to
+  register.
+
+== Install the Plugin
+To use the SWAMP Assessment Plugin it must first be installed using either the
+Jenkins plugin store, or using a .hpi file containing the plugin.
+
+=== Install Using the Jenkins Plugin Store
+The SWAMP Jenking Plugin can be installed directly from Jenkins using the on-line
+plugins available within Jenkins using the following steps:
+
+NOTE: Not available yet.
+
+. Go to your Jenkins URL in a web browser
+. Click _Manage Jenkins_ -> _Manage Plugins_
+. Click the _Available_ tab
+. Enter *SWAMP Plugin* in the search field at the top right of the page
+. Click the install checkbox next to the SWAMP Plugin
+. Click the _install without restart_ button
+. Click the _Go back to the top page_ link
+
+=== Install from a .hpi File
+The SWAMP Jenkins plugin can be installed directly from
+SWAMP-Jenkins-Plugin-{plugin-ver}.hpi file using the following steps:
+
+. Aquire the SWAMP-Jenkins-Plugin-{plugin-ver}.hpi on your computer
+. Go to your Jenkins URL in a web browser
+. Click _Manage Jenkins_ -> _Manage Plugins_
+. Click the _Advanced_ tab
+. In the *_Upload Plugin_* section, click the Browse button and select the
+  SWAMP-Jenkins-Plugin-{plugin-ver}.hpi file on your computer
+. Click the _Upload_ button
+. Click the _install without restart_ button
+. Click the _Go back to the top page_ link
+
+== Configure the SWAMP Jenkins Plugin
+The SWAMP Jenkins Plugin must be configured before use.
+This configuration is modified on the following web interface:
+
+. Go to your Jenkins URL in a web browser 
+. Click _Manage Jenkins_ -> _Configure System_
+. Scroll to the SWAMP Configuration Section (near the bottom of the
+  configuration page), and enter the following:
+
+[width="80%",cols="1,3",options="header"]
+|==========================
+|Parameter | Description
+2+|*Credentials*
+|Swamp Username a| Your username to log into the SWAMP
+
+NOTE: Third party credential such as github are not supported by the SWMAP Jenkins Plugin
+at this time.
+|Swamp Password | Your password to log into the SWAMP
+|SWAMP URL a| URL of SWAMP web site.
+The default is the SWAMP public instance at https://swa-csaweb-pd-01.mir-swamp.org.
+
+NOTE: _At this time the URL of the SWAMP web site can not be used.  The
+URL of the backend server must be used.  See your SWAMP administrator for
+this value if you are not using the SWAMP public instance._
+
+|Test Connection Button | Use this button to test your credentials and URL
+2+|*Global Project Settings*
+|Default Project | The default project to be used for each upload
+Can be modified in build settings
+2+|*Miscellaneous Options*
+|Verbose Mode | Provide extra output for status updates and error checking
+|Run even if build fails? | If checked, the package will be uploaded and assessed even if the build fails
+|Run Assessments in Background | If checked, the build will place the assessments in the background
+you will not get any feedback of success/failure, but Jenkins build will complete without waiting for SWAMP assessments
+|==========================
+
+== Use the SWAMP Jenkins Plugin
+. Go to your Jenkins URL in a web browser
+. Click on the project link that you want to assess with the SWAMP
+. Click on the _Configure_ link for the project on the left side
+. Scroll to the *Post Build Actions* section (or click the _Post Build Actions_ tab)
+. Click the _Add Post Build Action_ button and select "*Swamp Assessment*"
+. In the SWAMP Assessment section, fill out the data as follows:
+
+[width="80%",cols="1,3",options="header"]
+|==========================
+|Parameter | Description
+2+|*Package Settings*
+|Package Directory | If your source code for your package is located in a subdirectory, enter it here.
+|Package Name | Enter the name of your package here.  This is the name that will be used in the SWAMP UI.
+|Package Version a| Enter the version string of your package.
+Every build should have a unique version String. The following macros may be used
+
+[horizontal]
+$build:: unique Jenkins build id
+$date:: current date
+$git:: most recent git commit id
+$svn:: most recent svn commit id
+
+If you do not update the version number each build (either using any of the above options or manually updating the version) then submissions will have the same version and be difficult to destinguish in the user interface.
+|Package Language | The language that your package uses.
+2+|*Build Settings*
+|Build System | Select the build system your project uses.
+|Build Directory | Enter a value if your software needs to build in different directory than
+the _Package Directory_.  The directory is relative this the _Package Directory_
+|Build File |Leave blank if using a standard build file name for the select _Build System_
+(i.e. _build.xml_ for Ant, _pom.xml_ for Maven, _Makefile_ for Make)
+Enter a value if the build file is using a non standard name. The name is relative to the _Build Directory_.
+|Build Target |If building your package requires a special build target, enter it here, otherwise leave blank
+|Build Command |If you package requires a non-standard build command, enter it here, otherwise leave blank and the command will be determined by the _Build System_.
+|Build Options a|If you package requires options to passed to the build command, enter it
+here (e.g. `--verbose --setInt 1`), otherwise leave blank.
+Add multiple options separated by spaces as usual.
+|Clean Command a|Enter the command to clean your build.
+Leave blank to use the `[build-system] clean`
+2+|*Assessment Settings*
+|Project Name |The name of the project to use in the SWAMP.
+2+|*Click _Add_ to configure the Tool and Platforms to use:*
+|Tool |Select the tool you would like to use for this assessment.
+|Platform |Select the platform you would like to use for this assessment.
+2+|*Output Settings*
+|Fetch SCARF Output to Jenkins |Fetch the SCARF (SWAMP Common Assessment Results Format) file of the successful assessment to your Jenkins workspace.
+|Send Email when Results are Ready a|Have the SWAMP send an email when the assessment completes.
+
+NOTE: Not yet implemented
+|==========================
+
+== Running an Assessment
+When you run a build through any method (i.e. build button, git hook, etc.), the SWAMP Jenkins Plugin will send the package to the SWAMP for assessment.
+To view the status of your build, go to _your project_ -> _build *_ (listed on the left hand side, pick the most recent build) -> _console output_
+
+== Viewing your Results
+
+NOTE: Support will be added in the future to view the results directly on Jenkins
+
+The SWAMP web site can be used to view results of your assessments:
+
+. Login to the SWAMP as normal.
+. Click _Results_
+. Click the checkbox next to the assessment results you would like to review
+. Click _View Assessment Results_ button
+
+== Developing the Plugin
+NOTE: Coming Soon

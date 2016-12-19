@@ -1,0 +1,118 @@
+<!--
+config.jelly
+
+Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+ <f:section title="">
+  <img type="image/svd+xml" src="${rootURL}/plugin/Swamp/swamp-logo-small.png" />
+ </f:section>
+ <!--http://localhost:8080/jenkins/plugin/Swamp/swamp-logo-large.png-->
+ <j:if test="${descriptor.loginFail}">
+  <f:section title="ERROR: invalid credentials. Please verify your credentials in the Global Configurations page." />
+ </j:if>
+ <j:if test="${!descriptor.loginFail}">
+ <!--
+  <plugin>
+   <groupId>org.apache.maven.plugins</groupId>
+   <artifactId>maven-surefire-plugin</artifactId>
+   <configuration>
+    <environmentVariables>
+     <jenkins.GIT_COMMIT>${env.GIT_COMMIT}</jenkins.GIT_COMMIT>
+    </environmentVariables>
+   </configuration>
+  </plugin>
+-->
+   <!--f:advanced title="Package Settings"-->
+  <f:section title="Package Settings" >
+   <f:entry title="Package Directory" field="packageDir" help="/plugin/SwampAPI/Swamp/SwampPostBuild/help-password.html">
+    <f:textbox />
+   </f:entry>
+   <f:entry title="Package Name" field="packageName">
+    <f:textbox default="${descriptor.defaultPackageName()}"/>
+   </f:entry>
+   <f:entry title="Package Version" field="packageVersion">
+    <f:textbox default="build:$build-date:$date"/>
+   </f:entry>
+   <f:entry title="Package Language" field="packageLanguage">
+    <f:select default="${instance.detectLanguage()}"/>
+   </f:entry>
+  </f:section>
+   <!--/f:advanced-->
+  
+   <!--f:advanced title="Build Settings"-->
+  <f:section title="Build Settings">
+   <f:entry title="Build System" field="buildSystem">
+    <f:select default="${instance.detectBuildSystem}"/>
+   </f:entry>
+   <!--f:advanced title="Additional Build Settings"-->
+    <f:entry title="Build Directory" field="buildDirectory" >
+     <f:textbox />
+    </f:entry>
+    <f:entry title="Build File" field="buildFile">
+     <f:textbox />
+    </f:entry>
+    <f:entry title="Build Target" field="buildTarget">
+     <f:textbox />
+    </f:entry>
+    <f:entry title="Build Command" field="buildCommand">
+     <f:textbox />
+    </f:entry>
+    <f:entry title="Build Options" field="buildOptions">
+     <f:textbox />
+    </f:entry>
+    <f:entry title="Clean Command" field="cleanCommand">
+     <f:textbox />
+    </f:entry>
+   <!--/f:advanced-->
+  </f:section>
+   <!--/f:advanced-->
+   
+ <!--f:advanced title="Assessment Settings"-->
+  <f:section title="Assessment Settings">
+   <f:entry title="Project Name" field="projectUUID" default="${descriptor.defaultProject}">
+    <f:select />
+   </f:entry>
+    <f:entry title="Assessments" >
+	<f:repeatable field="assessmentInfo" noAddButton="false" minimum="0">
+	 <table width="100%">
+	  <f:entry title="Tool" >
+	   <f:select field="toolUUID" default="" varStatus="loop" />
+	  </f:entry>
+	  <f:entry title="Platform" >
+	   <f:select field="platformUUID" default="" varStatus="loop" />
+	  </f:entry>
+	  <f:entry>
+	   <div align="right">
+	    <input type="button" value="Delete" class="repeatable-delete show-if-not-only" style="margin-left: 1em;" />
+	   </div>
+	  </f:entry>
+	 </table>
+	</f:repeatable> 
+   </f:entry>
+  </f:section>
+ <!--/f:advanced-->
+   
+  <f:section title="Output Settings">
+   <f:optionalBlock field="outputToFile" title="Fetch SCARF  Output to Jenkins" inline="true">
+    <f:entry title="Outupt Directory Name:" field="outputDir">
+     <f:textbox default="Assessment_Output"/>
+    </f:entry>
+   </f:optionalBlock>
+   <f:optionalBlock field="sendEmail" title="Send Email when Results are Ready" inline="true" />
+  </f:section>
+ </j:if>
+</j:jelly>
