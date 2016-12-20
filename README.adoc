@@ -1,4 +1,4 @@
-:plugin-ver: 0.6.0
+:plugin-ver: 0.6.1
 = SWAMP Jenkins Plugin
 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
 {plugin-ver} {docdatetime}

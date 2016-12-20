@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-#  build_package.pl
+#  SWAMP Jenkins Plugin
 #
 #  Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
 #
@@ -91,7 +91,6 @@ sub main {
 	move("README.html","$packageName/") or die "Could not move README.html to $packageName/ - $!\nStopping";
 	system("/p/swamp/bin/asciidoctor README.adoc") and die "Could not create pdf from README.adoc - $!\nStopping";
 	move("README.pdf","$packageName/") or die "Could not move README.pdf to $packageName/ - $!\nStopping";
-	copy("RELEASE_NOTES.txt","$packageName/") or die "Could not copy RELEASE_NOTES.txt to $packageName/ - $!\nStopping";
 	chdir "Swamp";
 	my $retCode = system "mvn package -Denforcer.skip=true -DskipTests";
 	if ($retCode){

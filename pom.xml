@@ -32,12 +32,10 @@
   <description>This plugin submits and assesses your package for further testing and analysis, then outputs an xml file with recomended fixes.</description>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/SWAMP+Plugin</url>
 
-  <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
-
   <licenses>
     <license>
-      <name>MIT License</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <name>Apache License Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
 
