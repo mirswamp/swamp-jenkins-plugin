@@ -311,7 +311,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
 			return;
-		}/*
+		}
 		// Upload the package
 		try {
 			System.out.println(projectUUID + ", "  + api.getConnectedHostName());
@@ -439,12 +439,11 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 				}
 			}
 		}
-		*/
-		SwampDetailFactory detailBuilder = new SwampDetailFactory();
+		/*SwampDetailFactory detailBuilder = new SwampDetailFactory();
 		DetailFactory.addDetailBuilder(SwampBuildResultAction.class, detailBuilder);
 		if (PluginDescriptor.isMavenPluginInstalled()) {
             MavenInitialization.run(detailBuilder);
-        }
+        }*/
 		
     	//Log out
 		if (getDescriptor().getVerbose()){
