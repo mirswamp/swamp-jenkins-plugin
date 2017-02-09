@@ -32,6 +32,8 @@ import hudson.model.Run;
 import hudson.model.Action;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.plugins.analysis.core.FilesParser;
+import hudson.plugins.analysis.core.ParserResult;
 import hudson.plugins.analysis.core.PluginDescriptor;
 import hudson.plugins.analysis.views.DetailFactory;
 import hudson.plugins.tasks.MavenInitialization;
@@ -47,6 +49,7 @@ import org.apache.maven.plugin.MojoExecution;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
@@ -316,7 +319,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		}
 		// Upload the package
 		try {
-			System.out.println(projectUUID + ", "  + api.getConnectedHostName());
+			listener.getLogger().println(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID + ", "  + api.getConnectedHostName());
 			packageUUID = api.uploadPackage(configPath.getRemote(),
 					archivePath.getRemote(), projectUUID, false);
 		} catch (InvalidIdentifierException e) {
@@ -387,7 +390,8 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 				String previousStatus = null;
 				String assessmentName;
 				try {
-					assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID) + "-" + assessmentsToRun.get(i).getPlatformName(api)).replace(' ', '_');
+					assessmentName = "swampXml.xml";
+					//assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID) + "-" + assessmentsToRun.get(i).getPlatformName(api)).replace(' ', '_');
 				} catch (Exception e) {
 					listener.fatalError("Tool / Platform missing unexpectedly: " + e.getMessage());
 					return;
@@ -445,9 +449,22 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		DetailFactory.addDetailBuilder(SwampBuildResultAction.class, detailBuilder);
 		if (PluginDescriptor.isMavenPluginInstalled()) {
             MavenInitialization.run(detailBuilder);
-        }*/
-		
-    	//Log out
+        }
+		System.out.println(Jenkins.getInstance().getRawWorkspaceDir());
+		System.out.println(Jenkins.getInstance().getRawBuildsDir());
+		try {
+			FilePath buildDir = new FilePath(workspace,"target/swampXml.xml");
+			System.out.println(buildDir.getRemote());
+			FilePath testXmlDir = new FilePath(new File("/p/swamp/home/sweetland/swampXml.xml"));
+			buildDir.copyFrom(testXmlDir);
+			System.out.println("Sucess!");
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			System.out.println("Failure...");
+			e.printStackTrace();
+		}*/
+
+		//Log out
 		if (getDescriptor().getVerbose()){
 			listener.getLogger().println("Logging out");
 		}
