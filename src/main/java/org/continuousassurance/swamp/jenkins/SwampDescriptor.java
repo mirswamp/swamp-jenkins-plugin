@@ -1,37 +1,25 @@
-
-/* 
-  SWAMP Jenkins Plugin
-
-  Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-  */
-
 package org.continuousassurance.swamp.jenkins;
 
 import hudson.Extension;
 import hudson.plugins.analysis.core.PluginDescriptor;
+import org.continuousassurance.swamp.Messages;
 
+/**
+ * Descriptor for the class {@link SwampPublisher}. Used as a singleton. The
+ * class is marked as public so that it can be accessed from views.
+ *
+ * @author Ulli Hafner
+ */
 @Extension(ordinal = 100)
-public class SwampDescriptor  extends PluginDescriptor {
-	/** The ID of this plug-in is used as URL. */
-    static final String PLUGIN_ID = "SWAMP";
+public final class SwampDescriptor extends PluginDescriptor {
+    /** The ID of this plug-in is used as URL. */
+    static final String PLUGIN_ID = "swamp";
     /** The URL of the result action. */
     static final String RESULT_URL = PluginDescriptor.createResultUrlName(PLUGIN_ID);
     /** Icons prefix. */
-    static final String ICON_URL_PREFIX = "/plugin/SWAMP/icons/";
+    static final String ICON_URL_PREFIX = "/plugin/swamp/icons/";
     /** Icon to use for the result and project action. */
-    static final String ICON_URL = ICON_URL_PREFIX + "SWAMP-logo.png";
+    static final String ICON_URL = ICON_URL_PREFIX + "swamp-24x24.png";
 
     /**
      * Creates a new instance of {@link SwampDescriptor}.
@@ -42,7 +30,7 @@ public class SwampDescriptor  extends PluginDescriptor {
 
     @Override
     public String getDisplayName() {
-        return "Messages.Swamp_Publisher_Name()";
+    	return Messages.FindBugs_Publisher_Name();
     }
 
     @Override
@@ -57,6 +45,6 @@ public class SwampDescriptor  extends PluginDescriptor {
 
     @Override
     public String getSummaryIconUrl() {
-        return ICON_URL_PREFIX + "swamp-logo-small.png";
+        return ICON_URL_PREFIX + "swamp-48x48.png";
     }
 }

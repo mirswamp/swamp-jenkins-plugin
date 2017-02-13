@@ -115,5 +115,10 @@
   		<artifactId>tasks</artifactId>
   		<version>4.51-SNAPSHOT</version>
   	</dependency>
+  	<dependency>
+  		<groupId>org.continousassurance.scarf</groupId>
+  		<artifactId>scarf-parser</artifactId>
+  		<version>1.0-SNAPSHOT</version>
+  	</dependency>
   </dependencies>
 </project>

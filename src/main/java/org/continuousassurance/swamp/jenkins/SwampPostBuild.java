@@ -32,6 +32,7 @@ import hudson.model.Run;
 import hudson.model.Action;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.plugins.analysis.core.BuildResult;
 import hudson.plugins.analysis.core.FilesParser;
 import hudson.plugins.analysis.core.ParserResult;
 import hudson.plugins.analysis.core.PluginDescriptor;
@@ -146,6 +147,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 	private final String outputDir;
 	private final boolean sendEmail;
 	private final String email;
+    private String defaultEncoding;
 	
 	private String projectName;
 	private String archiveName;
@@ -186,7 +188,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     }
     
     @Override
-    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) {
+    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
     	//If the build failed, exit
     	if (!getDescriptor().getRunOnFail() && build.getResult().isWorseOrEqualTo(Result.FAILURE)){
     		if (getDescriptor().verbose){
@@ -469,6 +471,23 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 			listener.getLogger().println("Logging out");
 		}
 		api.logout();
+		
+		listener.getLogger().println("Collecting SWAMP analysis files...");
+
+        //boolean isMavenBuild = isMavenBuild(build);
+        //String defaultPattern = isMavenBuild ? MAVEN_DEFAULT_PATTERN : ANT_DEFAULT_PATTERN;
+        FilesParser collector = new FilesParser("SWAMP",
+                "**/parsed_results.xml",
+                new SwampParser(workspace, false, "", "*"), 
+                false,false);
+        ParserResult project = workspace.act(collector);
+        listener.getLogger().println(project.getLogMessages());
+        SwampResult result = new SwampResult(build, defaultEncoding, project,
+                true,true);
+
+        build.addAction(new SwampResultAction(build, new SwampPublisher(), result));
+
+        //return result;
     	
     }
 
@@ -1108,6 +1127,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         public boolean getLoginFail(){
         	return loginFail;
         }
+        
     }
     
 	@Override
@@ -1119,5 +1139,9 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     public DescriptorImpl getDescriptor() {
         // see Descriptor javadoc for more about what a descriptor is.
         return (DescriptorImpl)super.getDescriptor();
+    }
+
+    public void setDefaultEncoding(final String defaultEncoding) {
+        this.defaultEncoding = defaultEncoding;
     }
 }

@@ -1,36 +1,25 @@
-
-/* 
-  SWAMP Jenkins Plugin
-
-  Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-  */
-
 package org.continuousassurance.swamp.jenkins;
 
 import com.thoughtworks.xstream.XStream;
 
-import hudson.model.Messages;
+import hudson.model.AbstractBuild;
 import hudson.model.Run;
+
 import hudson.plugins.analysis.core.BuildHistory;
-import hudson.plugins.analysis.core.BuildResult;
 import hudson.plugins.analysis.core.ParserResult;
 import hudson.plugins.analysis.core.ResultAction;
+import hudson.plugins.analysis.core.BuildResult;
 import hudson.plugins.analysis.util.model.FileAnnotation;
+import org.continuousassurance.swamp.Messages;
 
+/**
+ * Represents the results of the FindBugs analysis. One instance of this class is persisted for
+ * each build via an XML file.
+ *
+ * @author Ulli Hafner
+ */
 public class SwampResult extends BuildResult {
-	private static final long serialVersionUID = 2768250056765266658L;
+    private static final long serialVersionUID = 2768250056765266658L;
 
     private static final int LESS_ONE_WEEK = 6;
 
@@ -57,7 +46,7 @@ public class SwampResult extends BuildResult {
     public SwampResult(final Run<?, ?> build, final String defaultEncoding, final ParserResult result,
             final boolean usePreviousBuildAsReference, final boolean useStableBuildAsReference) {
         this(build, defaultEncoding, result, usePreviousBuildAsReference, useStableBuildAsReference,
-                SwampResultAction.class);
+        		SwampResultAction.class);
     }
 
     /**
@@ -96,7 +85,7 @@ public class SwampResult extends BuildResult {
     }
 
     private void init() {
-        /*for (FileAnnotation annotation : getAnnotations()) {
+        for (FileAnnotation annotation : getAnnotations()) {
             if (annotation instanceof Bug) {
                 Bug bug = (Bug) annotation;
                 if (bug.isInCloud()) {
@@ -109,7 +98,7 @@ public class SwampResult extends BuildResult {
                     notInCloud++;
                 }
             }
-        }*/
+        }
     }
 
     /**
@@ -156,13 +145,12 @@ public class SwampResult extends BuildResult {
 
     @Override
     protected String getSerializationFileName() {
-        return "swamp-warnings.xml";
+        return "findbugs-warnings.xml";
     }
 
     @Override
     public String getDisplayName() {
-    	return "Swamp";
-        //return Messages.Swamp_ProjectAction_Name();
+    	return Messages.FindBugs_ProjectAction_Name();
     }
 
     @Override
