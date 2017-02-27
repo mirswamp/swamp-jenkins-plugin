@@ -43,7 +43,7 @@ public class SwampResultAction extends AbstractResultAction<SwampResult> {
 
     @Override
     protected PluginDescriptor getDescriptor() {
-        return new SwampDescriptor();
+        return new DescriptorImpl();
     }
 
     @Override

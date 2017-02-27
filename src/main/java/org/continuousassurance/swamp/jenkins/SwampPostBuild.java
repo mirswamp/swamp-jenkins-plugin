@@ -27,17 +27,21 @@ import hudson.Proc;
 import hudson.PluginWrapper;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.matrix.MatrixAggregator;
+import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.model.Run;
 import hudson.model.Action;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.analysis.core.BuildResult;
 import hudson.plugins.analysis.core.FilesParser;
+import hudson.plugins.analysis.core.HealthAwarePublisher;
 import hudson.plugins.analysis.core.ParserResult;
 import hudson.plugins.analysis.core.PluginDescriptor;
+import hudson.plugins.analysis.util.PluginLogger;
 import hudson.plugins.analysis.views.DetailFactory;
-import hudson.plugins.tasks.MavenInitialization;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
@@ -82,22 +86,22 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-public class SwampPostBuild extends Recorder implements SimpleBuildStep {
+public class SwampPostBuild extends HealthAwarePublisher {
 
 	
-	private static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
+	static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
 		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion",*/"CSS",/*"D","Datalog","Erlang",
 		"Forth","Fortran","Haskell",*/"HTML","Java","JavaScript",/*"LISP","Lua","ML",
 		"OCaml","Objective-C",*/"PHP",/*"Pascal",*/"Perl",/*"Prolog",*/"Python","Python-2","Python-3",
 		/*"Rexx",*/"Ruby",/*"sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"*/};
 		
-	private static final String[] VALID_BUILD_SYSTEMS = {"android+ant","android+ant+ivy","android+gradle","android+maven",
+	static final String[] VALID_BUILD_SYSTEMS = {"android+ant","android+ant+ivy","android+gradle","android+maven",
 		"ant","ant+ivy","cmake+make","configure+make","gradle","java-bytecode","make","maven",
 		"no-build","none","other","python-distutils"};
 	
-	private static HashMap<String,String> defaultBuildFiles;
+	static HashMap<String,String> defaultBuildFiles;
 	
-	private static HashMap<String,String> setupDefaultBuildFiles () {
+	static HashMap<String,String> setupDefaultBuildFiles () {
 		HashMap<String,String> defaults = new HashMap<String,String>();
 		defaults.put("ant", "build.xml");
 		defaults.put("maven", "pom.xml");
@@ -109,14 +113,14 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		return defaults;
 	}
 	
-	private static HashMap<String,String[]> buildSystemsPerLanguage;
+	static HashMap<String,String[]> buildSystemsPerLanguage;
 	
 	private static final String[] C_BUILD_SYSTEMS = {"cmake+make","configure+make","make","no-build","other"};
 	private static final String[] JAVA_BUILD_SYSTEMS = {"ant","ant+ivy","gradle","maven","no-build","android+ant","android+gradle","android+maven"};
 	private static final String[] PYTHON_BUILD_SYSTEMS = {"python-distutils","no-build","other"};
 	private static final String[] RUBY_BUILD_SYSTEMS = {"bundler","bundler+rake","bundler+other","rake","no-build","other","rubygem"};
 	
-	private static HashMap<String,String[]> setupBuildSystemsPerLanguage () {
+	static HashMap<String,String[]> setupBuildSystemsPerLanguage () {
 		HashMap<String,String[]> defaults = new HashMap<String,String[]>();
 		defaults.put("C", C_BUILD_SYSTEMS);
 		defaults.put("C++", C_BUILD_SYSTEMS);
@@ -136,6 +140,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 	private final String packageVersion;
 	private final String packageDir;
 	private final String packageLanguage;
+	private final String packageLanguageVersion;
 	private final String buildSystem;
 	private final String buildDirectory;
 	private final String buildFile;
@@ -154,7 +159,8 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 	
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String outputDir, boolean sendEmail, boolean outputToFile, String email, String cleanCommand) {
+    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String outputDir, boolean sendEmail, boolean outputToFile, String email, String cleanCommand) {
+        super("SWAMP");
         this.username = getDescriptor().getUsername();
         this.password = getDescriptor().getPassword();
         this.hostUrl = getDescriptor().getHostUrl();
@@ -163,6 +169,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         this.packageName = packageName;
         this.packageDir = packageDir;
         this.packageLanguage = packageLanguage;
+        this.packageLanguageVersion = packageLanguageVersion;
         this.buildSystem = buildSystem;
         this.buildDirectory = buildDirectory;
         this.buildFile = buildFile;
@@ -188,22 +195,23 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     }
     
     @Override
-    public void perform(Run<?,?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+    public BuildResult perform(final Run<?, ?> build, final FilePath workspace, final PluginLogger logger) throws IOException, InterruptedException {
+    	SwampResult emptyResult = null;
     	//If the build failed, exit
     	if (!getDescriptor().getRunOnFail() && build.getResult().isWorseOrEqualTo(Result.FAILURE)){
-    		if (getDescriptor().verbose){
-    			listener.fatalError("Build failed: no point in sending to the SWAMP");
+    		if (getDescriptor().getVerbose()){
+    			logger.log("[ERROR] Build failed: no point in sending to the SWAMP");
     		}
-    		return;
+    		return emptyResult;
     	}
     	//If the login failed, exit
-    	if (getDescriptor().loginFail){
-    		listener.fatalError("Login failed: check your credentials in the global configuration");
-    		return;
+    	if (getDescriptor().getLoginFail()){
+    		logger.log("[ERROR] Login failed: check your credentials in the global configuration");
+    		return emptyResult;
     	}
     	//Error check build info
-    	if (!checkBuild(workspace,listener)){
-    		return;
+    	if (!checkBuild(workspace,logger)){
+    		return emptyResult;
     	}
     	
     	//Sets up some additional configuration options
@@ -215,34 +223,28 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     	if (uploadVersion.contains("$date")){
     		uploadVersion = uploadVersion.replace("$date", dateFormat.format(new Date()));
     	}
+    	
+    	//BuildListener listener = null;//TODO bring back task listener for needed env vars
+    	//Launcher launcher = null;//TODO bring back launcher for needed clean commands
+    	
 		if (uploadVersion.contains("$git")){
-			try {
-				EnvVars buildVars = new EnvVars();
-				buildVars = build.getEnvironment(listener);
-				if (!buildVars.containsKey("GIT_COMMIT")){
-					uploadVersion = uploadVersion.replace("$git", "");
-					listener.error("Git commit not available. Replacing with blank string.");
-				}else{
-					uploadVersion = uploadVersion.replace("$git", buildVars.get("GIT_COMMIT"));
-				}
-			} catch (IOException | InterruptedException e) {
+			EnvVars buildVars = new EnvVars();
+			buildVars = build.getCharacteristicEnvVars();
+			if (!buildVars.containsKey("GIT_COMMIT")){
 				uploadVersion = uploadVersion.replace("$git", "");
-				listener.error("Error getting git commit: " + e.getMessage() + ". Replacing with blank string.");
+				logger.log("[ERROR] Git commit not available. Replacing with blank string.");
+			}else{
+				uploadVersion = uploadVersion.replace("$git", buildVars.get("GIT_COMMIT"));
 			}
 		}
 		if (uploadVersion.contains("$svn")){
-			try {
-				EnvVars buildVars = new EnvVars();
-				buildVars = build.getEnvironment(listener);
-				if (!buildVars.containsKey("SVN_REVISION")){
-					uploadVersion = uploadVersion.replace("$svn", "");
-					listener.error("Subversion commit not available. Replacing with blank string.");
-				}else{
-					uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
-				}
-			} catch (IOException | InterruptedException e) {
+			EnvVars buildVars = new EnvVars();
+			buildVars = build.getCharacteristicEnvVars();
+			if (!buildVars.containsKey("SVN_REVISION")){
 				uploadVersion = uploadVersion.replace("$svn", "");
-				listener.error("Error getting subversion commit: " + e.getMessage() + ". Replacing with blank string.");
+				logger.log("[ERROR] Subversion commit not available. Replacing with blank string.");
+			}else{
+				uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
 			}
 		}
 		if (uploadVersion.contains("/")){
@@ -259,92 +261,92 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     	//Login to the SWAMP
         SwampApiWrapper api;
     	try {
-    		api = login(username, password, hostUrl);
+    		api = DescriptorImpl.login(username, password, hostUrl);
 			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
     		//api.login(username, password);
 		} catch (Exception e) {
-			listener.fatalError("Error logging in: " + e.getMessage() + ". Check your credentials in the global configuration.");
+			logger.log("[ERROR] Error logging in: " + e.getMessage() + ". Check your credentials in the global configuration.");
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
     	
     	//Get project, tool, and platform uuids given the names
     	try {
-			getUUIDsFromNames(api,listener);
+			getUUIDsFromNames(api,logger);
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
     	
     	//Duplicate the workspace for cleaning
-    	FilePath tempPath = new FilePath(workspace,(packageDir.equals("") ? ".TempPackage" : packageDir + ".TempPackage"));
+    	FilePath tempPath = new FilePath(workspace,(packageDir.equals("") ? "../.TempPackage" : "../" + packageDir + ".TempPackage"));
     	try {
     		tempPath.mkdirs();
 			workspace.copyRecursiveTo(tempPath);
 		} catch (IOException | InterruptedException e) {
-			listener.fatalError("Could not create temporary workspace: " + e.getMessage());
+			logger.log("[ERROR] Could not create temporary workspace: " + e.getMessage());
 		}
     	
     	//Clean the package
-    	try {
+    	/*try {
     		if (getDescriptor().getVerbose()){
-    			listener.getLogger().println("Executing " + cleanCommand);
+    			logger.log("Executing " + cleanCommand);
     		}
 			ProcStarter starter = launcher.launch().cmdAsSingleString(cleanCommand).pwd(tempPath).envs(build.getEnvironment(listener)).stdout(listener);
 			Proc proc = launcher.launch(starter);
 			int retcode = proc.join();
 			if (getDescriptor().getVerbose()){
-    			listener.getLogger().println("Return code of " + cleanCommand + " is " + retcode);
+    			logger.log("Return code of " + cleanCommand + " is " + retcode);
 			}
 		} catch (IOException | InterruptedException e) {
-			listener.error("Invalid clean command " + cleanCommand + ": " + e.getMessage());
-		}
+			logger.log("[ERROR] Invalid clean command " + cleanCommand + ": " + e.getMessage());
+		}*/
     	
     	String packageUUID;
 		FilePath archivePath;
 		// Zip the package
 		try {
-			archivePath = zipPackage(workspace, listener);
+			archivePath = zipPackage(workspace, logger);
 			tempPath.deleteRecursive();
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
 		
 		// Create a config file for submission
 		FilePath configPath;
 		try {
-			configPath = writeConfFile(workspace, listener, uploadVersion);
+			configPath = writeConfFile(workspace, logger, uploadVersion);
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
 		// Upload the package
 		try {
-			listener.getLogger().println(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID + ", "  + api.getConnectedHostName());
+			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID + ", "  + api.getConnectedHostName());
 			packageUUID = api.uploadPackage(configPath.getRemote(),
 					archivePath.getRemote(), projectUUID, false);
 		} catch (InvalidIdentifierException e) {
-			listener.fatalError("Could not upload Package: "
+			logger.log("[ERROR] Could not upload Package: "
 					+ e.getMessage());
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
 		if (getDescriptor().getVerbose()){
-			listener.getLogger().println("Package Uploaded. UUID id " + packageUUID);
+			logger.log("Package Uploaded. UUID id " + packageUUID);
 		}
 		//*Delete the package archive and config file since they are no longer needed
 		try {
 			configPath.delete();
 			archivePath.delete();
 		} catch (IOException e) {
-			listener.fatalError("Deletion of straggler files failed: " + e.getMessage());
+			logger.log("[ERROR] Deletion of straggler files failed: " + e.getMessage());
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		} catch (InterruptedException e) {
-			listener.fatalError("Deletion of straggler files interrupted: " + e.getMessage());
+			logger.log("[ERROR] Deletion of straggler files interrupted: " + e.getMessage());
 			//build.setResult(Result.FAILURE);
-			return;
+			return emptyResult;
 		}
 		
 		//Deal with the "all" option
@@ -364,11 +366,11 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		for (int i = 0; i < assessmentUUIDs.length;i++){
 			try {
 				if (getDescriptor().getVerbose()){
-	    			listener.getLogger().println("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformName(api));
+	    			logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformName(api));
 				}
 				assessmentUUIDs[i] = api.runAssessment(packageUUID, assessmentsToRun.get(i).getToolUUID(), projectUUID, assessmentsToRun.get(i).getPlatformUUID());
 			} catch (Exception e) {
-				listener.fatalError("Assessment failed: " + e.getMessage());
+				logger.log("[ERROR] Assessment failed: " + e.getMessage());
 			}
 		}
 		
@@ -376,12 +378,13 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 			//TODO Email results when complete
 		}
 		
+		ArrayList<String> assessmentNames = new ArrayList<String>();
 		if (!getDescriptor().getBackgroundAssess() || outputToFile){
 			FilePath outputPath = new FilePath(workspace, outputDir);
 			try {
 				outputPath.mkdirs();
 			} catch (IOException | InterruptedException e) {
-				listener.fatalError("Could not create output directory: " + e.getMessage());
+				logger.log("[ERROR] Could not create output directory: " + e.getMessage());
 				//build.setResult(Result.FAILURE);
 			}
 	    	//For each assessment
@@ -392,11 +395,13 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 				String previousStatus = null;
 				String assessmentName;
 				try {
-					assessmentName = "swampXml.xml";
-					//assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID) + "-" + assessmentsToRun.get(i).getPlatformName(api)).replace(' ', '_');
+					//assessmentName = "swampXml.xml";
+					assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID) + "-" + assessmentsToRun.get(i).getPlatformName(api)).replace(' ', '_') + ".xml";
+					assessmentName = assessmentName.replace("/", "-");
+					logger.log("Assessment added: assessment name = " + assessmentName);
 				} catch (Exception e) {
-					listener.fatalError("Tool / Platform missing unexpectedly: " + e.getMessage());
-					return;
+					logger.log("[ERROR] Tool / Platform missing unexpectedly: " + e.getMessage());
+					return emptyResult;
 				}
 				//Wait until the assessment is complete
 				while (assessmentResults.equals("null")){
@@ -407,28 +412,28 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 						}
 					}
 					if (assessmentRecord == null){
-						listener.fatalError("AssessmentRun " + assessmentUUIDs[i] + " not found");
+						logger.log("[ERROR] AssessmentRun " + assessmentUUIDs[i] + " not found");
 						//build.setResult(Result.FAILURE);
-						return;
+						return emptyResult;
 					}
 					assessmentResults = assessmentRecord.getAssessmentResultUUID();
 					if (!assessmentRecord.getStatus().equals(previousStatus)){
-						listener.getLogger().println("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
+						logger.log("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
 						previousStatus = assessmentRecord.getStatus();
 					}
 					if (assessmentResults.equals("null")){
 						try {
 							Thread.sleep(30000);
 						} catch (InterruptedException e) {
-							listener.fatalError("Waiting for status interrupted: " + e.getMessage());
+							logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
 							//build.setResult(Result.FAILURE);
-							return;
+							return emptyResult;
 						}
 					}
 				}
 				if (outputToFile){
 					//Save the assessment to the requested spot
-					FilePath newFile = new FilePath(workspace,outputDir + "/" + assessmentName.replace("/", "-"));
+					FilePath newFile = new FilePath(workspace,outputDir + "/" + assessmentName);
 					try {
 						int fileNum = 0;
 						while (newFile.exists()){
@@ -436,14 +441,15 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 							newFile = new FilePath(workspace,outputDir + "/" + assessmentName.replace("/", "-") + "(" + fileNum + ")");
 						}
 					} catch (IOException | InterruptedException e) {
-						listener.fatalError("Failed to check files: " + e.getMessage());
+						logger.log("[ERROR] Failed to check files: " + e.getMessage());
 						//build.setResult(Result.FAILURE);
-						return;
+						return emptyResult;
 					}
 					if (getDescriptor().getVerbose()){
-		    			listener.getLogger().println("Assessment finished. Writing results to " + newFile.getRemote());
+		    			logger.log("Assessment finished. Writing results to " + newFile.getRemote());
 					}
 					api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
+					logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
 				}
 			}
 		}
@@ -468,35 +474,37 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 
 		//Log out
 		if (getDescriptor().getVerbose()){
-			listener.getLogger().println("Logging out");
+			logger.log("Logging out");
 		}
 		api.logout();
 		
-		listener.getLogger().println("Collecting SWAMP analysis files...");
+		logger.log("Collecting SWAMP analysis files...");
 
         //boolean isMavenBuild = isMavenBuild(build);
         //String defaultPattern = isMavenBuild ? MAVEN_DEFAULT_PATTERN : ANT_DEFAULT_PATTERN;
+		SwampResult result = null;
+		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion.replace("/", "-") + "*";
         FilesParser collector = new FilesParser("SWAMP",
-                "**/parsed_results.xml",
-                new SwampParser(workspace, false, "", "*"), 
+                assessmentPattern,
+                new SwampParser(workspace, false, null, null), 
                 false,false);
         ParserResult project = workspace.act(collector);
-        listener.getLogger().println(project.getLogMessages());
-        SwampResult result = new SwampResult(build, defaultEncoding, project,
+        logger.log(project.getLogMessages());
+        result = new SwampResult(build, defaultEncoding, project,
                 true,true);
 
-        build.addAction(new SwampResultAction(build, new SwampPublisher(), result));
+        build.addAction(new SwampResultAction(build, this, result));
 
-        //return result;
+        return result;
     	
     }
 
-    private boolean checkBuild (FilePath workspace, TaskListener listener){
+    private boolean checkBuild (FilePath workspace, PluginLogger logger){
     	FilePath buildFile;
     	if (this.buildFile.equals("")){
         	defaultBuildFiles = setupDefaultBuildFiles();
     		if (!defaultBuildFiles.containsKey(buildSystem)){
-    			listener.getLogger().println("[Warning] could not verify build file for " + buildSystem);
+    			logger.log("[Warning] could not verify build file for " + buildSystem);
     			return true;
     		}
     		for (String nextPossibleName : defaultBuildFiles.get(buildSystem).split(",")){
@@ -506,20 +514,20 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         				return true;
         			}
     			} catch (IOException | InterruptedException e) {
-    				listener.fatalError("Could not verify build file's existance: " + e.getMessage());
+    				logger.log("[ERROR] Could not verify build file's existance: " + e.getMessage());
     			}
     		}
-			listener.fatalError("Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"));
+			logger.log("[ERROR] Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"));
 			return false;
     	}else{
     		buildFile = new FilePath(workspace,(buildDirectory.equals("") ? "" : buildDirectory + "/") + this.buildFile);
     		try {
     			if (!buildFile.exists()){
-    				listener.fatalError("Build file " + buildFile.getRemote() + " not found.");
+    				logger.log("[ERROR] Build file " + buildFile.getRemote() + " not found.");
     				return false;
     			}
 			} catch (IOException | InterruptedException e) {
-				listener.fatalError("Could not verify build file's existance: " + e.getMessage());
+				logger.log("[ERROR] Could not verify build file's existance: " + e.getMessage());
 			}
     	}
     	return true;
@@ -528,25 +536,25 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     /**
      * Gets the UUIDs from the names of the projects, tools, and platforms
      * @param api the api that we are logged into
-     * @param listener the listener in Jenkins for any output of errors
-     * @throws Exception if something goes wrong, details will be printed to the listener and a generic exception will be thrown
+     * @param logger the logger in Jenkins for any output of errors
+     * @throws Exception if something goes wrong, details will be printed to the logger and a generic exception will be thrown
      */
-    private void getUUIDsFromNames (SwampApiWrapper api, TaskListener listener) throws Exception{
+    private void getUUIDsFromNames (SwampApiWrapper api, PluginLogger logger) throws Exception{
     	//Get project UUID
     	if (getDescriptor().getVerbose()){
-			listener.getLogger().println("Retrieving IDs from names");
+			logger.log("Retrieving IDs from names");
     	}
     	boolean allGood = true;
     	try {
     		Project myProject = api.getProject(projectUUID);
     		if (myProject == null){
-    			listener.fatalError("Project " + projectName + " does not exist.");
+    			logger.log("[ERROR] Project " + projectName + " does not exist.");
     			allGood = false;
     		}else{
     			projectName = myProject.getFullName();
     		}
     	}catch (Exception e) {
-			listener.fatalError("Could not retrieve project list: " + e.getMessage());
+			logger.log("[ERROR] Could not retrieve project list: " + e.getMessage());
 			throw new Exception();
     	}
     	try {
@@ -554,11 +562,11 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     		while (myInfo.hasNext()){
     			AssessmentInfo nextAssess = myInfo.next();
     			if (getDescriptor().getVerbose()){
-        			listener.getLogger().println("Verifying " + nextAssess.getAssessmentInfo(api, projectUUID));
+        			logger.log("Verifying " + nextAssess.getAssessmentInfo(api, projectUUID));
     			}
     		}
     	}catch (Exception e){
-    		listener.fatalError("Some tools or platforms are invalid: " + e.getMessage());
+    		logger.log("[ERROR] Some tools or platforms are invalid: " + e.getMessage());
 			allGood = false;
     	}
 		if (!allGood){
@@ -569,11 +577,11 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     /**
      * Zips the package for uploading
      * @param workspace the directory of the workspace
-     * @param listener the listener in Jenkins for any output of errors
+     * @param logger the logger in Jenkins for any output of errors
      * @return the file path to the output folder (archiveName must be added on)
-     * @throws Exception if something goes wrong, details will be printed to the listener and a generic exception will be thrown
+     * @throws Exception if something goes wrong, details will be printed to the logger and a generic exception will be thrown
      */
-    private FilePath zipPackage(FilePath workspace, TaskListener listener) throws Exception{
+    private FilePath zipPackage(FilePath workspace, PluginLogger logger) throws Exception{
     	//Sets up the temporary directory to store the package
     	FilePath packagePath = new FilePath(workspace,(packageDir.equals("") ? ".TempPackage" : packageDir + ".TempPackage"));
 		FilePath archivePath = new FilePath(workspace,archiveName);
@@ -583,13 +591,13 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 			packagePath.zip(stream, "**");
 
 			if (getDescriptor().getVerbose()){
-    			listener.getLogger().println("Archive created at " + archivePath.getRemote());
+    			logger.log("Archive created at " + archivePath.getRemote());
 			}
 		} catch (IOException e) {
-			listener.fatalError("Archive creation failed: " + e.getMessage());
+			logger.log("[ERROR] Archive creation failed: " + e.getMessage());
 			throw new Exception();
 		} catch (InterruptedException e) {
-			listener.fatalError("Archive creation interrupted: " + e.getMessage());
+			logger.log("[ERROR] Archive creation interrupted: " + e.getMessage());
 			throw new Exception();
 		}
 
@@ -599,11 +607,11 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     /**
      * Writes a configuration file for the package to be uploaded
      * @param workspace directory of the workspace of the package
-     * @param listener the listener in Jenkins for any output of errors
+     * @param logger the logger in Jenkins for any output of errors
      * @return the filepath to the config file
-     * @throws Exception if something goes wrong, details will be printed to the listener and a generic exception will be thrown
+     * @throws Exception if something goes wrong, details will be printed to the logger and a generic exception will be thrown
      */
-    private FilePath writeConfFile (FilePath workspace, TaskListener listener, String uploadVersion) throws Exception{
+    private FilePath writeConfFile (FilePath workspace, PluginLogger logger, String uploadVersion) throws Exception{
     	//Retrieves the MD5 and SHA-512 of the archive
     	FilePath archivePath = new FilePath(workspace,archiveName);
     	FilePath configPath = new FilePath(workspace,"package.conf");
@@ -612,17 +620,17 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		try {
 			md5hash = archivePath.digest();
 			if (getDescriptor().getVerbose()){
-    			listener.getLogger().println("MD5: " + md5hash);
+    			logger.log("MD5: " + md5hash);
 			}
 			sha512hash = getSHA512(archivePath);
 			if (getDescriptor().getVerbose()){
-    			listener.getLogger().println("SHA-512: " + sha512hash);
+    			logger.log("SHA-512: " + sha512hash);
 			}
 		} catch (IOException e) {
-			listener.fatalError("Could not get MD5 or SHA-512: " + e.getMessage());
+			logger.log("[ERROR] Could not get MD5 or SHA-512: " + e.getMessage());
 			throw new Exception();
 		} catch (InterruptedException e) {
-			listener.fatalError("MD5 or SHA-512 interrupted: " + e.getMessage());
+			logger.log("[ERROR] MD5 or SHA-512 interrupted: " + e.getMessage());
 			throw new Exception();
 		}
 		//Prepares the writer for the conf file
@@ -631,10 +639,10 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		try {
 			writer = new PrintWriter(pkgConf.getAbsolutePath(), "UTF-8");
 		} catch (FileNotFoundException e) {
-			listener.fatalError("Could not create a package.conf file: " + e.getMessage());
+			logger.log("[ERROR] Could not create a package.conf file: " + e.getMessage());
 			throw new Exception();
 		} catch (UnsupportedEncodingException e) {
-			listener.fatalError("Character Encoding not supported: " + e.getMessage());
+			logger.log("[ERROR] Character Encoding not supported: " + e.getMessage());
 			throw new Exception();
 		}
 		//Writes the details to the conf file
@@ -644,6 +652,9 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		writer.println("package-archive-md5=" + md5hash);
 		writer.println("package-archive-sha512=" + sha512hash);
 		writer.println("package-language=" + packageLanguage);
+		if (packageLanguageVersion.equals("")){
+			writer.println("package-language-version=" + packageLanguageVersion);//TODO
+		}
 		if (packageDir.equals("")){
 			writer.println("package-dir=.");
 		}else{
@@ -667,7 +678,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 		}
 		writer.close();
 		if (getDescriptor().getVerbose()){
-			listener.getLogger().println("Config file written at " + configPath.getRemote());
+			logger.log("Config file written at " + configPath.getRemote());
 		}
 		return configPath;
 
@@ -692,12 +703,6 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 			return null;
 		}
 	}
-    
-    private static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
-    	SwampApiWrapper api = new SwampApiWrapper(SwampApiWrapper.HostType.CUSTOM,hostUrl);
-    	api.login(username, password);
-    	return api;
-    }
 
     //All getters used by Jenkins to save configurations
     public String getUsername() {
@@ -734,6 +739,10 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 
     public String getPackageLanguage() {
 		return packageLanguage;
+	}
+
+    public String getPackageLanguageVersion() {
+		return packageLanguageVersion;
 	}
     
     public String getBuildSystem() {
@@ -780,8 +789,14 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
     	PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin("SwampPreBuild");
     	return Jenkins.getInstance().getRootUrl() + "plugin/"+ wrapper.getShortName()+"/swamp-logo-large.png";
     }
-    
-    @Extension // This indicates to Jenkins that this is an implementation of an extension point.
+    /*
+    @Extension
+    public static final class DescriptorImpl extends SwampDescriptor {
+    	public DescriptorImpl() {
+    		super();
+    	}
+    }*/
+    /*@ Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
     	
     	private String username;
@@ -797,7 +812,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /**
          * In order to load the persisted global configuration, you have to 
          * call load() in the constructor.
-         */
+         *
         public DescriptorImpl() {
             load();
 		    try {
@@ -811,14 +826,14 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 				loginFail = true;
 			}
         	/*AssessmentInfo.setUsername(username);
-		    AssessmentInfo.setPassword(password);*/
+		    AssessmentInfo.setPassword(password);*
         }
         
         /**
          * Performs on-the-fly validation of the form field 'username'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckUsername(@QueryParameter String value){
             if (value.length() == 0){
                 return FormValidation.error("Please enter your username.");
@@ -830,7 +845,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the form field 'password'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckPassword(@QueryParameter String value){
             if (value.length() == 0){
                 return FormValidation.error("Please enter your password.");
@@ -842,7 +857,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the form field 'password'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckHostUrl(@QueryParameter String value){
             if (value.length() == 0){
                 return FormValidation.error("Please enter a host url.");
@@ -854,7 +869,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the form field 'packageVersion'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckPackageVersion(@QueryParameter String value){
             if (value.length() == 0){
                 return FormValidation.error("Please enter the version of your package.");
@@ -866,7 +881,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the form field 'packageLanguage'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckPackageLanguage(@QueryParameter String value){
         	//SwampApiWrapper api;
 			try {
@@ -885,7 +900,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /** TODO Language fix when it comes out
          * Fills the languages list
          * @return a ListBoxModel containing the languages as strings
-         */
+         *
         public ListBoxModel doFillPackageLanguageItems() {
         	ListBoxModel items = new ListBoxModel();
             //items.add(detectLanguage());
@@ -903,7 +918,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
             while (validLanguages.hasNext()){
             	items.add(validLanguages.next());
             }
-            */
+            *
         	for (int i = 0; i < VALID_LANGUAGES.length; i++){
         		items.add(VALID_LANGUAGES[i]);
         	}
@@ -924,8 +939,8 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /**
          * Tests the connection using the credentials provided
          * @return validation of the test along with a message
-         */
-        public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
+         *
+        public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException *{
         	try{
         		api = login(username, password, hostUrl);
         		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
@@ -938,7 +953,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /**
          * Fills the build system list
          * @return a ListBoxModel containing the build systems as strings
-         */
+         *
         public ListBoxModel doFillBuildSystemItems(@QueryParameter String packageLanguage){
             ListBoxModel items = new ListBoxModel();
             buildSystemsPerLanguage = setupBuildSystemsPerLanguage();
@@ -956,7 +971,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
             for (int i = 0; i < VALID_BUILD_SYSTEMS.length; i++){
             	items.add(VALID_BUILD_SYSTEMS[i]);
         	}
-        	*/
+        	*
             return items;
         }
 
@@ -964,7 +979,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the form field 'buildSystem'.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckBuildSystem(@QueryParameter String value){
         	if (value.equals("null")){
         		return FormValidation.error("Language not supported: Please select a valid language");
@@ -979,7 +994,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /**
          * Fills the project names list
          * @return a ListBoxModel containing the project names as strings
-         */
+         *
         public ListBoxModel doFillProjectUUIDItems() {
             ListBoxModel items = new ListBoxModel();
             //items.add(defaultProject);
@@ -1002,7 +1017,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         /**
          * Fills the project names list
          * @return a ListBoxModel containing the project names as strings
-         */
+         *
         public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
             ListBoxModel items = new ListBoxModel();
         	try {
@@ -1026,7 +1041,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
          * Performs on-the-fly validation of the tool.
          * @param value This parameter receives the value that the user has typed.
          * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
+         *
         public FormValidation doCheckDefaultProject(@QueryParameter String value){
         	if (value == null || value.equals("")){
         		return FormValidation.error("Select a project to be your global default");
@@ -1060,7 +1075,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 
         /**
          * This human readable name is used in the configuration screen.
-         */
+         *
         public String getDisplayName() {
             return "SWAMP Assessment";
         }
@@ -1092,7 +1107,7 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
 				loginFail = true;
 			}
         	/*AssessmentInfo.setUsername(username);
-		    AssessmentInfo.setPassword(password);*/
+		    AssessmentInfo.setPassword(password);*
             return super.configure(req,formData);
         }
         
@@ -1128,18 +1143,30 @@ public class SwampPostBuild extends Recorder implements SimpleBuildStep {
         	return loginFail;
         }
         
-    }
+    }*/
     
 	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
 		return BuildStepMonitor.NONE;
 	}
-	
-	@Override
+
+    @Override
     public DescriptorImpl getDescriptor() {
-        // see Descriptor javadoc for more about what a descriptor is.
         return (DescriptorImpl)super.getDescriptor();
     }
+    
+    @Override
+    public MatrixAggregator createAggregator(final MatrixBuild build, final Launcher launcher,
+            final BuildListener listener) {
+        return new SwampAnnotationsAggregator(build, launcher, listener, this, getDefaultEncoding(),
+                usePreviousBuildAsReference(), useOnlyStableBuildsAsReference());
+    }
+    
+	@Override
+    /*public DescriptorImpl getDescriptor() {
+        // see Descriptor javadoc for more about what a descriptor is.
+        return (DescriptorImpl)super.getDescriptor();
+    }*/
 
     public void setDefaultEncoding(final String defaultEncoding) {
         this.defaultEncoding = defaultEncoding;

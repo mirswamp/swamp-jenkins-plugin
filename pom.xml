@@ -10,7 +10,7 @@
     <groupId>org.jenkins-ci.plugins</groupId>
   </parent>
   <groupId>org.continuousassurance.swamp.jenkins</groupId>
-  <artifactId>plugin</artifactId>
+  <artifactId>swamp-plugin</artifactId>
   <version>0.6.1</version>
   <packaging>hpi</packaging>
 
@@ -25,7 +25,7 @@
     <!-- Other properties you may want to use:
          ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
          ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
-    -->
+      -->
   </properties>
 
   <name>SWAMP Plugin</name>
@@ -39,23 +39,6 @@
     </license>
   </licenses>
 
-
-  <!-- If you want this to appear on the wiki page:
-  <developers>
-    <developer>
-      <id>bhacker</id>
-      <name>Bob Q. Hacker</name>
-      <email>bhacker@nowhere.net</email>
-    </developer>
-  </developers>
-  -->
-  <!-- Assuming you want to host on @jenkinsci:
-  <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
-  </scm>
-   -->
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
@@ -68,57 +51,25 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
-  <!-- If you want to depend on other plugins:
+
   <dependencies>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials</artifactId>
-      <version>1.9.4</version>
+      <groupId>org.continuousassurance.swamp</groupId>
+      <artifactId>java-cli</artifactId>
+      <version>1.0-SNAPSHOT</version>
     </dependency>
-  </dependencies>
-  -->
 
-  <dependencies>
-  	<!-- <dependency> -->
-  	<!-- 	<groupId>edu.uiuc.ncsa.swamp</groupId> -->
-  	<!-- 	<artifactId>ncsa-swamp</artifactId> -->
-  	<!-- 	<version>1.0-SNAPSHOT</version> -->
-  	<!-- </dependency> -->
-  <dependency>
- <groupId>org.continuousassurance.swamp</groupId>
-    <artifactId>java-cli</artifactId>
-    <version>1.0-SNAPSHOT</version>
-  </dependency>
-
-  <dependency>
-<groupId>org.jvnet.hudson.plugins</groupId>
-    <artifactId>analysis-core</artifactId>
-    <version>1.82-SNAPSHOT</version>
-  </dependency>
+    <dependency>
+      <groupId>org.jvnet.hudson.plugins</groupId>
+      <artifactId>analysis-core</artifactId>
+      <version>1.82-SNAPSHOT</version>
+    </dependency>
 
 
-
-<!--<parent>
-    <groupId>org.jvnet.hudson.plugins</groupId>
-    <artifactId>analysis-pom</artifactId>
-    <version>1.65</version>
-    <relativePath>../../analysis-pom</relativePath>
-  </parent>-->
-
-  	<!-- <dependency> -->
-  	<!-- 	<groupId>org.continuousassurance.swamp.java-cli</groupId> -->
-  	<!-- 	<artifactId>java-cli</artifactId> -->
-  	<!-- 	<version>1.0-SNAPSHOT-jar-with-dependencies</version> -->
-  	<!-- </dependency> -->
-  	<dependency>
-  		<groupId>org.jvnet.hudson.plugins</groupId>
-  		<artifactId>tasks</artifactId>
-  		<version>4.51-SNAPSHOT</version>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.continousassurance.scarf</groupId>
-  		<artifactId>scarf-parser</artifactId>
-  		<version>1.0-SNAPSHOT</version>
-  	</dependency>
+    <dependency>
+      <groupId>org.continousassurance.scarf</groupId>
+      <artifactId>scarf-parser</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
   </dependencies>
 </project>

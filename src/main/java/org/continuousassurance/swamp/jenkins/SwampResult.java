@@ -117,12 +117,12 @@ public class SwampResult extends BuildResult {
 
     @Override
     public String getSummary() {
-        return "Swamp: " + createDefaultSummary(SwampDescriptor.RESULT_URL, getNumberOfAnnotations(), getNumberOfModules());
+        return "Swamp: " + createDefaultSummary(DescriptorImpl.RESULT_URL, getNumberOfAnnotations(), getNumberOfModules());
     }
 
     @Override
     protected String createDeltaMessage() {
-        return createDefaultDeltaMessage(SwampDescriptor.RESULT_URL, getNumberOfNewWarnings(), getNumberOfFixedWarnings());
+        return createDefaultDeltaMessage(DescriptorImpl.RESULT_URL, getNumberOfNewWarnings(), getNumberOfFixedWarnings());
     }
 
     /**

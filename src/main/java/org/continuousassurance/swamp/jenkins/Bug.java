@@ -25,7 +25,8 @@ import org.continuousassurance.swamp.Messages;
 @SuppressWarnings("PMD.CyclomaticComplexity")
 public class Bug extends AbstractAnnotation {
     /** Origin of the annotation. */
-    public static final String ORIGIN = "findbugs";
+    //public static final String ORIGIN = "findbugs";
+    public static String ORIGIN = "findbugs";
 
     private static final long serialVersionUID = 5171661552905752370L;
     private static final Random RANDOM = new Random();
@@ -63,11 +64,12 @@ public class Bug extends AbstractAnnotation {
      * @param end
      *            the last line of the line range
      */
-    public Bug(final Priority priority, final String message, final String category, final String type,
+    public Bug(final Priority priority, final String message, final String category, final String type, final String origin,
             final int start, final int end) {
         super(priority, message, start, end, category, type);
-
-        setOrigin(ORIGIN);
+        System.out.println("Message = " + message + ", Origin = " + origin);
+        ORIGIN = origin;
+        setOrigin(origin);
     }
 
     /**
@@ -85,7 +87,7 @@ public class Bug extends AbstractAnnotation {
      *            the line number of the warning in the corresponding file
      */
     public Bug(final Priority priority, final String message, final String category, final String type, final int lineNumber) {
-        this(priority, message, category, type, lineNumber, lineNumber);
+        this(priority, message, category, type, "unavailable", lineNumber, lineNumber);
     }
 
     /**
@@ -101,7 +103,7 @@ public class Bug extends AbstractAnnotation {
      *            the identifier of the warning type
      */
     public Bug(final Priority priority, final String message, final String category, final String type) {
-        this(priority, message, category, type, 0, 0);
+        this(priority, message, category, type, "unavailable", 0, 0);
     }
 
     /**
@@ -124,7 +126,7 @@ public class Bug extends AbstractAnnotation {
      */
     public Bug(final Priority priority, final String message, final String category, final String type,
             final int start, final int end, final String tooltip) {
-        this(priority, message, category, type, start, end);
+        this(priority, message, category, type, "unavailable", start, end);
 
         this.tooltip = tooltip;
     }

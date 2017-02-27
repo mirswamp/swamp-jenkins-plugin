@@ -38,7 +38,7 @@ public class SwampProjectAction extends AbstractProjectAction<ResultAction<Swamp
     public SwampProjectAction(final Job<?, ?> job,
             final Class<? extends ResultAction<SwampResult>> type) {
         super(job, type, Messages._FindBugs_ProjectAction_Name(), Messages._FindBugs_Trend_Name(),
-                SwampDescriptor.PLUGIN_ID, SwampDescriptor.ICON_URL, SwampDescriptor.RESULT_URL);
+                DescriptorImpl.PLUGIN_ID, DescriptorImpl.ICON_URL, DescriptorImpl.RESULT_URL);
     }
 
     @Override

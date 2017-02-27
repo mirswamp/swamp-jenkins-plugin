@@ -164,6 +164,7 @@ public class SwampParser implements AnnotationParser {
 					bug_inst.getBugMessage(), 
 					bug_inst.getBugGroup(), 
 					bug_inst.getBugCode(),
+					file.getName(),
 					bug_start_line, 
 		            bug_end_line);
 			

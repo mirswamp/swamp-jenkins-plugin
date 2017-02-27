@@ -18,9 +18,9 @@ limitations under the License.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
  <f:section title="">
-  <img type="image/svd+xml" src="${rootURL}/plugin/Swamp/swamp-logo-small.png" />
+  <img type="image/svd+xml" src="${rootURL}/org/continuousassurance/swamp/swamp-logo-small.png" />
  </f:section>
- <!--http://localhost:8080/jenkins/plugin/Swamp/swamp-logo-large.png-->
+ <!--http://localhost:8080/org/continuousassurance/swamp/swamp-logo-large.png-->
  <j:if test="${descriptor.loginFail}">
   <f:section title="ERROR: invalid credentials. Please verify your credentials in the Global Configurations page." />
  </j:if>
@@ -49,6 +49,9 @@ limitations under the License.
    </f:entry>
    <f:entry title="Package Language" field="packageLanguage">
     <f:select default="${instance.detectLanguage()}"/>
+   </f:entry>
+   <f:entry title="Package Language Version" field="packageLanguageVersion">
+    <f:textbox />
    </f:entry>
   </f:section>
    <!--/f:advanced-->

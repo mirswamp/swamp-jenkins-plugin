@@ -1,6 +1,5 @@
 package org.continuousassurance.swamp.jenkins;
 
-import hudson.plugins.analysis.Messages;
 import hudson.plugins.analysis.core.BuildResult;
 import hudson.plugins.analysis.graph.CategoryBuildResultGraph;
 import hudson.plugins.analysis.graph.ColorPalette;
@@ -18,6 +17,8 @@ import java.util.List;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.data.category.CategoryDataset;
+
+import org.continuousassurance.swamp.Messages;
 
 /**
  * Builds a review count graph for a specified result action.
