@@ -1,3 +1,22 @@
+
+/* 
+  SWAMP Jenkins Plugin
+
+  Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  */
+
 package org.continuousassurance.swamp.jenkins;
 
 import com.thoughtworks.xstream.XStream;
@@ -13,7 +32,7 @@ import hudson.plugins.analysis.util.model.FileAnnotation;
 import org.continuousassurance.swamp.Messages;
 
 /**
- * Represents the results of the FindBugs analysis. One instance of this class is persisted for
+ * Represents the results of the SWAMP analysis. One instance of this class is persisted for
  * each build via an XML file.
  *
  * @author Ulli Hafner
@@ -134,23 +153,24 @@ public class SwampResult extends BuildResult {
         return newThisWeek;
     }
 
-    /**
-     * Gets the number of bugs which are not stored in the FindBugs Cloud.
-     *
-     * @return the number of bugs which are not stored in the FindBugs Cloud
-     */
+//    /**
+//     */ Gets the number of bugs which are not stored in the FindBugs Cloud.
+//     *
+//     * @return the number of bugs which are not stored in the FindBugs Cloud
+//     */
+    /*
     public int getNotInCloud() {
         return notInCloud;
-    }
+    }*/
 
     @Override
     protected String getSerializationFileName() {
-        return "findbugs-warnings.xml";
+        return "findbugs-warnings.xml";//TODO replace findbugs with SWAMP
     }
 
     @Override
     public String getDisplayName() {
-    	return Messages.FindBugs_ProjectAction_Name();
+    	return DescriptorImpl.DISPLAY_NAME + " Result";
     }
 
     @Override

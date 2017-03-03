@@ -1,3 +1,22 @@
+
+/* 
+  SWAMP Jenkins Plugin
+
+  Copyright 2016 Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  */
+
 package org.continuousassurance.swamp.jenkins;
 
 import java.io.Serializable;
@@ -23,7 +42,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * In either case, {@code new HexishString(x).toString().equals(x)} for any non-null string.
  *
  * <p>
- * This class is developed to represent "instance hash" that findbugs produces, which appears
+ * This class is developed to represent "instance hash" that SWAMP tools produce, which appears
  * to be 128bit information encoded in the hex form. In String with associated char[], it takes up about 128 bytes,
  * but in this form it only occupies about 64 bytes if it's hex, and 112 when it's not. So it's more space efficient
  * either way.

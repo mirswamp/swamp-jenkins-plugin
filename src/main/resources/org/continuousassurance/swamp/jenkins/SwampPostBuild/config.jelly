@@ -110,11 +110,11 @@ limitations under the License.
  <!--/f:advanced-->
    
   <f:section title="Output Settings">
-   <f:optionalBlock field="outputToFile" title="Fetch SCARF  Output to Jenkins" inline="true">
+   <!--<f:optionalBlock field="outputToFile" title="Fetch SCARF  Output to Jenkins" inline="true">
     <f:entry title="Outupt Directory Name:" field="outputDir">
      <f:textbox default="Assessment_Output"/>
     </f:entry>
-   </f:optionalBlock>
+   </f:optionalBlock>-->
    <f:optionalBlock field="sendEmail" title="Send Email when Results are Ready" inline="true" />
   </f:section>
  </j:if>

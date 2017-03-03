@@ -24,12 +24,12 @@ import java.util.List;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-
 import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
 import org.continuousassurance.swamp.cli.SwampApiWrapper.HostType;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
+
 import hudson.Extension;
 import hudson.RelativePath;
 import hudson.model.AbstractDescribableImpl;
@@ -46,6 +46,7 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	private static boolean midAccess = false; 
 	/*private static String username;
 	private static String password;*/
+
 	/*
 	public static void setUsername(String newUsername){
 		username = newUsername;
@@ -91,17 +92,21 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	}
 	
 	@Override
-    public DescriptorImpl getDescriptor() {
+    public AssessmentInfoDescriptor getDescriptor() {
         // see Descriptor javadoc for more about what a descriptor is.
-        return (DescriptorImpl)super.getDescriptor();
+        return (AssessmentInfoDescriptor)super.getDescriptor();
     }
 	
 	@Extension 
-    public static class DescriptorImpl extends Descriptor<AssessmentInfo> { 
+    public static class AssessmentInfoDescriptor extends Descriptor<AssessmentInfo> { 
 		
 		private String errorMessageTool;
 		private String errorMessagePlatform;
 		
+	    public AssessmentInfoDescriptor() {
+	        super(AssessmentInfo.class);
+	    }
+		//swamp-warnings.xml
 		/*
         public String getPassword() {
 			return password;
@@ -475,7 +480,7 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
         }
 		
         public String getDisplayName() {
-        	return "Load parameters";
+        	return DescriptorImpl.DISPLAY_NAME + " Parameters";
         } 
     }
 }

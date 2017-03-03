@@ -279,13 +279,20 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		}
     	
     	//Duplicate the workspace for cleaning
-    	FilePath tempPath = new FilePath(workspace,(packageDir.equals("") ? "../.TempPackage" : "../" + packageDir + ".TempPackage"));
+    	//FilePath tempPath = new FilePath(workspace,(packageDir.equals("") ? ".TempPackage" : packageDir + ".TempPackage"));
+    	/*FilePath tempPath = new FilePath(workspace,("../.TempPackage"));
+    	FilePath target = new FilePath(workspace,(packageDir.equals("") ? ".TempPackage" : packageDir + ".TempPackage"));
     	try {
     		tempPath.mkdirs();
 			workspace.copyRecursiveTo(tempPath);
+			target.mkdirs();
+			logger.log("tempPath = " + tempPath.getRemote() + ", target = " + target.getRemote());
+			tempPath.copyRecursiveTo(target);
+			tempPath.deleteRecursive();
 		} catch (IOException | InterruptedException e) {
 			logger.log("[ERROR] Could not create temporary workspace: " + e.getMessage());
-		}
+			return emptyResult;
+		}*/
     	
     	//Clean the package
     	/*try {
@@ -302,26 +309,49 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("[ERROR] Invalid clean command " + cleanCommand + ": " + e.getMessage());
 		}*/
     	
-    	String packageUUID;
+    	/*String packageUUID;
 		FilePath archivePath;
 		// Zip the package
 		try {
 			archivePath = zipPackage(workspace, logger);
-			tempPath.deleteRecursive();
+			target.deleteRecursive();
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
+			logger.log("[ERROR] Archiving the package failed: " + e.getMessage());
+			return emptyResult;
+		}*/
+    	
+    	FilePath archivePath = new FilePath (new FilePath(build.getRootDir()), archiveName.replace('/', '-'));
+    	//FilePath archivePath = new FilePath (workspace, "../" + archiveName.replace('/', '-'));
+    	FilePath packagePath = new FilePath(workspace,packageDir.equals("") ? "" : "/" + packageDir);
+    	//logger.log(archivePath.getRemote() + ", " + packagePath.getRemote());
+    	//Zips the archive and moves it to the output directory
+		try {
+			OutputStream stream = archivePath.write();
+			packagePath.zip(stream, "**");
+
+			if (getDescriptor().getVerbose()){
+    			logger.log("Archive created at " + archivePath.getRemote());
+			}
+		} catch (IOException e) {
+			logger.log("[ERROR] Archive creation failed: " + e.getMessage());
+			return emptyResult;
+		} catch (InterruptedException e) {
+			logger.log("[ERROR] Archive creation interrupted: " + e.getMessage());
 			return emptyResult;
 		}
 		
 		// Create a config file for submission
 		FilePath configPath;
 		try {
-			configPath = writeConfFile(workspace, logger, uploadVersion);
+			configPath = writeConfFile(workspace, archivePath, logger, uploadVersion);
 		} catch (Exception e) {
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		}
+		
 		// Upload the package
+		String packageUUID;
 		try {
 			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID + ", "  + api.getConnectedHostName());
 			packageUUID = api.uploadPackage(configPath.getRemote(),
@@ -431,46 +461,27 @@ public class SwampPostBuild extends HealthAwarePublisher {
 						}
 					}
 				}
-				if (outputToFile){
-					//Save the assessment to the requested spot
-					FilePath newFile = new FilePath(workspace,outputDir + "/" + assessmentName);
-					try {
-						int fileNum = 0;
-						while (newFile.exists()){
-							fileNum++;
-							newFile = new FilePath(workspace,outputDir + "/" + assessmentName.replace("/", "-") + "(" + fileNum + ")");
-						}
-					} catch (IOException | InterruptedException e) {
-						logger.log("[ERROR] Failed to check files: " + e.getMessage());
-						//build.setResult(Result.FAILURE);
-						return emptyResult;
+
+				//Save the assessment to the requested spot
+				FilePath newFile = new FilePath(workspace,outputDir + "/" + assessmentName);
+				try {
+					int fileNum = 0;
+					while (newFile.exists()){
+						fileNum++;
+						newFile = new FilePath(workspace,outputDir + "/" + assessmentName.replace("/", "-") + "(" + fileNum + ")");
 					}
-					if (getDescriptor().getVerbose()){
-		    			logger.log("Assessment finished. Writing results to " + newFile.getRemote());
-					}
-					api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
-					logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
+				} catch (IOException | InterruptedException e) {
+					logger.log("[ERROR] Failed to check files: " + e.getMessage());
+					//build.setResult(Result.FAILURE);
+					return emptyResult;
 				}
+				if (getDescriptor().getVerbose()){
+		    		logger.log("Assessment finished. Writing results to " + newFile.getRemote());
+				}
+				api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
+				logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
 			}
 		}
-		/*SwampDetailFactory detailBuilder = new SwampDetailFactory();
-		DetailFactory.addDetailBuilder(SwampBuildResultAction.class, detailBuilder);
-		if (PluginDescriptor.isMavenPluginInstalled()) {
-            MavenInitialization.run(detailBuilder);
-        }
-		System.out.println(Jenkins.getInstance().getRawWorkspaceDir());
-		System.out.println(Jenkins.getInstance().getRawBuildsDir());
-		try {
-			FilePath buildDir = new FilePath(workspace,"target/swampXml.xml");
-			System.out.println(buildDir.getRemote());
-			FilePath testXmlDir = new FilePath(new File("/p/swamp/home/sweetland/swampXml.xml"));
-			buildDir.copyFrom(testXmlDir);
-			System.out.println("Sucess!");
-		} catch (IOException | InterruptedException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Failure...");
-			e.printStackTrace();
-		}*/
 
 		//Log out
 		if (getDescriptor().getVerbose()){
@@ -480,8 +491,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		
 		logger.log("Collecting SWAMP analysis files...");
 
-        //boolean isMavenBuild = isMavenBuild(build);
-        //String defaultPattern = isMavenBuild ? MAVEN_DEFAULT_PATTERN : ANT_DEFAULT_PATTERN;
 		SwampResult result = null;
 		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion.replace("/", "-") + "*";
         FilesParser collector = new FilesParser("SWAMP",
@@ -611,9 +620,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
      * @return the filepath to the config file
      * @throws Exception if something goes wrong, details will be printed to the logger and a generic exception will be thrown
      */
-    private FilePath writeConfFile (FilePath workspace, PluginLogger logger, String uploadVersion) throws Exception{
+    private FilePath writeConfFile (FilePath workspace, FilePath archivePath, PluginLogger logger, String uploadVersion) throws Exception{
     	//Retrieves the MD5 and SHA-512 of the archive
-    	FilePath archivePath = new FilePath(workspace,archiveName);
     	FilePath configPath = new FilePath(workspace,"package.conf");
     	String md5hash;
 		String sha512hash;
@@ -653,7 +661,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		writer.println("package-archive-sha512=" + sha512hash);
 		writer.println("package-language=" + packageLanguage);
 		if (packageLanguageVersion.equals("")){
-			writer.println("package-language-version=" + packageLanguageVersion);//TODO
+			writer.println("package-language-version=" + packageLanguageVersion);
 		}
 		if (packageDir.equals("")){
 			writer.println("package-dir=.");
@@ -789,361 +797,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin("SwampPreBuild");
     	return Jenkins.getInstance().getRootUrl() + "plugin/"+ wrapper.getShortName()+"/swamp-logo-large.png";
     }
-    /*
-    @Extension
-    public static final class DescriptorImpl extends SwampDescriptor {
-    	public DescriptorImpl() {
-    		super();
-    	}
-    }*/
-    /*@ Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
-    	
-    	private String username;
-    	private String password;
-    	private String hostUrl;
-    	private String defaultProject;
-    	private SwampApiWrapper api;
-    	private boolean loginFail = false;
-    	private boolean verbose;
-    	private boolean runOnFail;
-    	private boolean backgroundAssess;
-    	
-        /**
-         * In order to load the persisted global configuration, you have to 
-         * call load() in the constructor.
-         *
-        public DescriptorImpl() {
-            load();
-		    try {
-		    	api = login(username, password, hostUrl);
-				//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-	        	//api.login(username, password);
-			    AssessmentInfo.setApi(api);
-				loginFail = false;
-			} catch (Exception e) {
-				System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
-				loginFail = true;
-			}
-        	/*AssessmentInfo.setUsername(username);
-		    AssessmentInfo.setPassword(password);*
-        }
-        
-        /**
-         * Performs on-the-fly validation of the form field 'username'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckUsername(@QueryParameter String value){
-            if (value.length() == 0){
-                return FormValidation.error("Please enter your username.");
-            }
-            return FormValidation.ok();
-        }
-
-        /**
-         * Performs on-the-fly validation of the form field 'password'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckPassword(@QueryParameter String value){
-            if (value.length() == 0){
-                return FormValidation.error("Please enter your password.");
-            }
-            return FormValidation.ok();
-        }
-
-        /**
-         * Performs on-the-fly validation of the form field 'password'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckHostUrl(@QueryParameter String value){
-            if (value.length() == 0){
-                return FormValidation.error("Please enter a host url.");
-            }
-            return FormValidation.ok();
-        }
-
-        /**
-         * Performs on-the-fly validation of the form field 'packageVersion'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckPackageVersion(@QueryParameter String value){
-            if (value.length() == 0){
-                return FormValidation.error("Please enter the version of your package.");
-            }
-            return FormValidation.ok();
-        }
-
-        /**
-         * Performs on-the-fly validation of the form field 'packageLanguage'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckPackageLanguage(@QueryParameter String value){
-        	//SwampApiWrapper api;
-			try {
-				//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-	        	//api.login(username, password);
-			} catch (Exception e) {
-				return FormValidation.error("Could not log in: "+e.getMessage() + ". Check your credentials in the global configuration.");
-			}
-        	String convertedLang = api.getPkgTypeString(value, "", "", null);
-        	if (convertedLang == null){
-        		return FormValidation.error("Language not supported");
-        	}
-        	return FormValidation.ok();
-        }
-
-        /** TODO Language fix when it comes out
-         * Fills the languages list
-         * @return a ListBoxModel containing the languages as strings
-         *
-        public ListBoxModel doFillPackageLanguageItems() {
-        	ListBoxModel items = new ListBoxModel();
-            //items.add(detectLanguage());
-    		/*
-        	SwampApiWrapper api;
-			try {
-				api = new SwampApiWrapper(HostType.DEVELOPMENT);
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-        		error.add("ERROR: Could not load languages: " + e.getMessage() + " Please verify your username and password, delete this field, and retry.","null");
-        		return error;
-			}
-    		api.login(username, password);
-            Iterator<String> validLanguages = api.getPackageTypes().keySet().iterator();
-            while (validLanguages.hasNext()){
-            	items.add(validLanguages.next());
-            }
-            *
-        	for (int i = 0; i < VALID_LANGUAGES.length; i++){
-        		items.add(VALID_LANGUAGES[i]);
-        	}
-            //items.sort(null);
-            return items;
-        }
-        
-        public String detectLanguage() {
-        	//TODO - detect language of package
-        	return "Java";
-        }
-        
-        public String detectBuildSystem() {
-        	//TODO - detect build system based on language or something
-        	return "ant";
-        }
-        
-        /**
-         * Tests the connection using the credentials provided
-         * @return validation of the test along with a message
-         *
-        public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException *{
-        	try{
-        		api = login(username, password, hostUrl);
-        		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-        		//api.login(username, password);
-        		return FormValidation.ok("Success");
-        	}catch (Exception e){
-        		return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
-        	}
-        }
-        /**
-         * Fills the build system list
-         * @return a ListBoxModel containing the build systems as strings
-         *
-        public ListBoxModel doFillBuildSystemItems(@QueryParameter String packageLanguage){
-            ListBoxModel items = new ListBoxModel();
-            buildSystemsPerLanguage = setupBuildSystemsPerLanguage();
-            if (buildSystemsPerLanguage.containsKey(packageLanguage)){
-            	for (int i = 0; i < buildSystemsPerLanguage.get(packageLanguage).length; i++){
-            		items.add(buildSystemsPerLanguage.get(packageLanguage)[i]);
-            	}
-            }else{
-            	items.add("","null");
-            }
-            /*
-            if (packageLanguage != null){
-                items.add(detectBuildSystem());
-        	}
-            for (int i = 0; i < VALID_BUILD_SYSTEMS.length; i++){
-            	items.add(VALID_BUILD_SYSTEMS[i]);
-        	}
-        	*
-            return items;
-        }
-
-        /**
-         * Performs on-the-fly validation of the form field 'buildSystem'.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckBuildSystem(@QueryParameter String value){
-        	if (value.equals("null")){
-        		return FormValidation.error("Language not supported: Please select a valid language");
-        	}
-        	defaultBuildFiles = setupDefaultBuildFiles();
-        	if (!defaultBuildFiles.containsKey(value)){
-        		return FormValidation.warning("Under advanced settings, please enter the command used to clean your project.");
-        	}
-        	return FormValidation.ok();
-        }
-        
-        /**
-         * Fills the project names list
-         * @return a ListBoxModel containing the project names as strings
-         *
-        public ListBoxModel doFillProjectUUIDItems() {
-            ListBoxModel items = new ListBoxModel();
-            //items.add(defaultProject);
-        	try {
-				//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-        		//api.login(username, password);
-        		Iterator<Project> myProjects = api.getProjectsList().iterator();
-        		while(myProjects.hasNext()){
-        			Project nextProject = myProjects.next();
-        			items.add(nextProject.getFullName(),nextProject.getUUIDString());
-        		}
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-        		error.add("ERROR: could not log in. Check your credentials in the global configuration.","null");
-        		return error;
-			}
-        	return items;
-        }
-        
-        /**
-         * Fills the project names list
-         * @return a ListBoxModel containing the project names as strings
-         *
-        public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
-            ListBoxModel items = new ListBoxModel();
-        	try {
-        		api = login(username, password, hostUrl);
-        		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-        		//api.login(username, password);
-        		Iterator<Project> myProjects = api.getProjectsList().iterator();
-        		while(myProjects.hasNext()){
-        			Project nextProject = myProjects.next();
-        			items.add(nextProject.getFullName(), nextProject.getUUIDString());
-        		}
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-        		error.add("","null");
-        		return error;
-			}
-        	return items;
-        }
-        
-        /**
-         * Performs on-the-fly validation of the tool.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         *
-        public FormValidation doCheckDefaultProject(@QueryParameter String value){
-        	if (value == null || value.equals("")){
-        		return FormValidation.error("Select a project to be your global default");
-        	}
-        	if (value.equals("null")){
-        		return FormValidation.error("ERROR: could not log in.");
-        	}
-        	return FormValidation.ok();
-        }
-        
-        public String defaultPackageName(){
-        	//TODO detect default package name
-        	String jobName = Jenkins.getInstance().getDescriptor().getDescriptorFullUrl();
-        	jobName = jobName.substring(jobName.indexOf("job/") + 4);
-        	try {
-				jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-        	return jobName;
-        }
-        
-        public String defaultHostUrl(){
-        	return SwampApiWrapper.SWAMP_HOST_NAMES_MAP.get(SwampApiWrapper.HostType.PRODUCTION);
-        }
-        
-        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            // Indicates that this builder can be used with all kinds of project types 
-            return true;
-        }
-
-        /**
-         * This human readable name is used in the configuration screen.
-         *
-        public String getDisplayName() {
-            return "SWAMP Assessment";
-        }
-
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-        	username = formData.getString("username");
-        	password = formData.getString("password");
-        	hostUrl = formData.getString("hostUrl");
-        	defaultProject = formData.getString("defaultProject");
-        	verbose = formData.getBoolean("verbose");
-        	runOnFail = formData.getBoolean("runOnFail");
-        	backgroundAssess = formData.getBoolean("backgroundAssess");
-        	api = null;
-            //useFrench = formData.getBoolean("useFrench");
-            // ^Can also use req.bindJSON(this, formData);
-            //  (easier when there are many fields; need set* methods for this, like setUseFrench)
-            save();
-            try {
-            	api = login(username, password, hostUrl);
-				//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-			    AssessmentInfo.setApi(api);
-	    		//api.login(username, password);
-				loginFail = false;
-			} catch (Exception e) {
-				System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
-				loginFail = true;
-			}
-        	/*AssessmentInfo.setUsername(username);
-		    AssessmentInfo.setPassword(password);*
-            return super.configure(req,formData);
-        }
-        
-        public String getPassword() {
-			return password;
-		}
-        
-        public String getUsername() {
-			return username;
-		}
-        
-        public String getHostUrl() {
-        	return hostUrl;
-        }
-        
-        public String getDefaultProject() {
-			return defaultProject;
-		}
-        
-        public boolean getVerbose() {
-        	return verbose;
-        }
-        
-        public boolean getRunOnFail(){
-        	return runOnFail;
-        }
-        
-        public boolean getBackgroundAssess(){
-        	return backgroundAssess;
-        }
-        
-        public boolean getLoginFail(){
-        	return loginFail;
-        }
-        
-    }*/
     
 	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
