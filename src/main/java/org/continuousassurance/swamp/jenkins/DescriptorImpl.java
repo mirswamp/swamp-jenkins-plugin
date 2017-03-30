@@ -26,11 +26,14 @@ import java.util.Iterator;
 import jenkins.model.Jenkins;
 import hudson.Extension;
 import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.plugins.analysis.core.PluginDescriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
+
+
 
 
 //import org.continuousassurance.swamp.Messages;
@@ -46,11 +49,11 @@ import org.kohsuke.stapler.StaplerRequest;
  * @author Ulli Hafner
  */
 @Extension(ordinal = 100)
-public final class DescriptorImpl extends PluginDescriptor {
+public final class DescriptorImpl extends PluginDescriptor{
     /** The ID of this plug-in is used as URL. */
     static final String PLUGIN_ID = "swamp";
     
-    static final String DISPLAY_NAME = "SWAMP Assessment";
+    static final String PLUGIN_DISPLAY_NAME = "SWAMP Assessment";
     /** The URL of the result action. */
     static final String RESULT_URL = PluginDescriptor.createResultUrlName(PLUGIN_ID);
     /** Icons prefix. */
@@ -62,11 +65,10 @@ public final class DescriptorImpl extends PluginDescriptor {
 	private String password;
 	private String hostUrl;
 	private String defaultProject;
-	private SwampApiWrapper api;
 	private boolean loginFail = false;
 	private boolean verbose;
 	private boolean runOnFail;
-	private boolean backgroundAssess;
+	//private boolean backgroundAssess;
     /**
      * Creates a new instance of {@link DescriptorImpl}.
      * In order to load the persisted global configuration, you have to 
@@ -76,17 +78,13 @@ public final class DescriptorImpl extends PluginDescriptor {
         super(SwampPostBuild.class);
         load();
 	    try {
-	    	api = login(username, password, hostUrl);
-			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-        	//api.login(username, password);
-		    AssessmentInfo.setApi(api);
+		    SwampPostBuild.setApi(login(username, password, hostUrl));
+		    AssessmentInfo.setApi(SwampPostBuild.getSwampApi());
 			loginFail = false;
 		} catch (Exception e) {
 			System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
 			loginFail = true;
 		}
-    	/*AssessmentInfo.setUsername(username);
-	    AssessmentInfo.setPassword(password);*/
     }
     /**
      * Performs on-the-fly validation of the form field 'username'.
@@ -142,54 +140,41 @@ public final class DescriptorImpl extends PluginDescriptor {
      * @return Indicates the outcome of the validation. This is sent to the browser.
      */
     public FormValidation doCheckPackageLanguage(@QueryParameter String value){
-    	//SwampApiWrapper api;
 		try {
-			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-        	//api.login(username, password);
 		} catch (Exception e) {
 			return FormValidation.error("Could not log in: "+e.getMessage() + ". Check your credentials in the global configuration.");
 		}
-    	String convertedLang = api.getPkgTypeString(value, "", "", null);
+    	String convertedLang = SwampPostBuild.getSwampApi().getPkgTypeString(value, "", "", null);
     	if (convertedLang == null){
     		return FormValidation.error("Language not supported");
     	}
     	return FormValidation.ok();
     }
 
-    /** TODO Language fix when it comes out
+    /**
      * Fills the languages list
      * @return a ListBoxModel containing the languages as strings
      */
     public ListBoxModel doFillPackageLanguageItems() {
+    	//TODO Get the list of valid languages from the SWAMP
     	ListBoxModel items = new ListBoxModel();
-        //items.add(detectLanguage());
-		/*
-    	SwampApiWrapper api;
-		try {
-			api = new SwampApiWrapper(HostType.DEVELOPMENT);
-		} catch (Exception e) {
-			ListBoxModel error = new ListBoxModel();
-    		error.add("ERROR: Could not load languages: " + e.getMessage() + " Please verify your username and password, delete this field, and retry.","null");
-    		return error;
-		}
-		api.login(username, password);
-        Iterator<String> validLanguages = api.getPackageTypes().keySet().iterator();
-        while (validLanguages.hasNext()){
-        	items.add(validLanguages.next());
-        }
-        */
     	for (int i = 0; i < SwampPostBuild.VALID_LANGUAGES.length; i++){
     		items.add(SwampPostBuild.VALID_LANGUAGES[i]);
     	}
-        //items.sort(null);
         return items;
     }
     
+    /**
+     * Guesses the language of the package
+     */
     public String detectLanguage() {
     	//TODO - detect language of package
     	return "Java";
     }
     
+    /**
+     * Guesses the build of the package
+     */
     public String detectBuildSystem() {
     	//TODO - detect build system based on language or something
     	return "ant";
@@ -201,9 +186,7 @@ public final class DescriptorImpl extends PluginDescriptor {
      */
     public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
     	try{
-    		api = login(username, password, hostUrl);
-    		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-    		//api.login(username, password);
+    		SwampPostBuild.setApi(login(username, password, hostUrl));
     		return FormValidation.ok("Success");
     	}catch (Exception e){
     		return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
@@ -223,14 +206,6 @@ public final class DescriptorImpl extends PluginDescriptor {
         }else{
         	items.add("","null");
         }
-        /*
-        if (packageLanguage != null){
-            items.add(detectBuildSystem());
-    	}
-        for (int i = 0; i < VALID_BUILD_SYSTEMS.length; i++){
-        	items.add(VALID_BUILD_SYSTEMS[i]);
-    	}
-    	*/
         return items;
     }
 
@@ -260,7 +235,7 @@ public final class DescriptorImpl extends PluginDescriptor {
     	try {
 			//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
     		//api.login(username, password);
-    		Iterator<Project> myProjects = api.getProjectsList().iterator();
+    		Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
     		while(myProjects.hasNext()){
     			Project nextProject = myProjects.next();
     			items.add(nextProject.getFullName(),nextProject.getUUIDString());
@@ -280,10 +255,10 @@ public final class DescriptorImpl extends PluginDescriptor {
     public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
         ListBoxModel items = new ListBoxModel();
     	try {
-    		api = login(username, password, hostUrl);
+    		SwampPostBuild.setApi(login(username, password, hostUrl));
     		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
     		//api.login(username, password);
-    		Iterator<Project> myProjects = api.getProjectsList().iterator();
+    		Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
     		while(myProjects.hasNext()){
     			Project nextProject = myProjects.next();
     			items.add(nextProject.getFullName(), nextProject.getUUIDString());
@@ -310,7 +285,10 @@ public final class DescriptorImpl extends PluginDescriptor {
     	}
     	return FormValidation.ok();
     }
-    
+
+    /**
+     * Gets the default name of the package from Jenkins
+     */
     public String defaultPackageName(){
     	//TODO detect default package name
     	String jobName = Jenkins.getInstance().getDescriptor().getDescriptorFullUrl();
@@ -322,9 +300,12 @@ public final class DescriptorImpl extends PluginDescriptor {
 		}
     	return jobName;
     }
-    
+
+    /**
+     * Gets the default host URL from the SWAMP
+     */
     public String defaultHostUrl(){
-    	return SwampApiWrapper.SWAMP_HOST_NAMES_MAP.get(SwampApiWrapper.HostType.PRODUCTION);
+    	return SwampApiWrapper.SWAMP_HOST_NAME;
     }
     
     public boolean isApplicable(Class<? extends AbstractProject> aClass) {
@@ -336,42 +317,38 @@ public final class DescriptorImpl extends PluginDescriptor {
      * This human readable name is used in the configuration screen.
      */
     public String getDisplayName() {
-        return DISPLAY_NAME;
+        return PLUGIN_DISPLAY_NAME;
     }
     
+    /**
+     * Saves the global configuration for use during the build
+     * @param req
+     * @param formData
+     * @return whether the configuration was successful
+     */
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-        // To persist global configuration information,
-        // set that to properties and call save().
     	username = formData.getString("username");
     	password = formData.getString("password");
     	hostUrl = formData.getString("hostUrl");
     	defaultProject = formData.getString("defaultProject");
     	verbose = formData.getBoolean("verbose");
     	runOnFail = formData.getBoolean("runOnFail");
-    	backgroundAssess = formData.getBoolean("backgroundAssess");
-    	api = null;
-        //useFrench = formData.getBoolean("useFrench");
-        // ^Can also use req.bindJSON(this, formData);
-        //  (easier when there are many fields; need set* methods for this, like setUseFrench)
+    	//backgroundAssess = formData.getBoolean("backgroundAssess");
         try {
-        	api = login(username, password, hostUrl);
-			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-		    AssessmentInfo.setApi(api);
-    		//api.login(username, password);
+        	SwampPostBuild.setApi(login(username, password, hostUrl));
+		    AssessmentInfo.setApi(SwampPostBuild.getSwampApi());
 			loginFail = false;
 		} catch (Exception e) {
 			System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
 			loginFail = true;
 		}
         save();
-    	/*AssessmentInfo.setUsername(username);
-	    AssessmentInfo.setPassword(password);*/
         return super.configure(req,formData);
     }
     
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
-    	SwampApiWrapper api = new SwampApiWrapper(SwampApiWrapper.HostType.CUSTOM,hostUrl);
+    	SwampApiWrapper api = new SwampApiWrapper(hostUrl);
     	api.login(username, password);
     	return api;
     }
@@ -415,9 +392,9 @@ public final class DescriptorImpl extends PluginDescriptor {
     	return runOnFail;
     }
     
-    public boolean getBackgroundAssess(){
+    /*public boolean getBackgroundAssess(){
     	return backgroundAssess;
-    }
+    }*/
     
     public boolean getLoginFail(){
     	return loginFail;

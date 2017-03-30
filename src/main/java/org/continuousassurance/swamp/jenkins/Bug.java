@@ -45,7 +45,7 @@ import org.continuousassurance.swamp.Messages;
 public class Bug extends AbstractAnnotation {
     /** Origin of the annotation. */
     //public static final String ORIGIN = "findbugs";
-    public static String ORIGIN = "findbugs";
+    public static String ORIGIN;
 
     private static final long serialVersionUID = 5171661552905752370L;
     private static final Random RANDOM = new Random();
@@ -85,8 +85,9 @@ public class Bug extends AbstractAnnotation {
      */
     public Bug(final Priority priority, final String message, final String category, final String type, final String origin,
             final int start, final int end) {
-        super(priority, message, start, end, category, type);
-        System.out.println("Message = " + message + ", Origin = " + origin);
+        //super(priority, message, start, end, category, type);
+        //super(priority, message, start, end, origin, type);
+    	super(priority, message, start, end, origin + ": " + category, type);
         ORIGIN = origin;
         setOrigin(origin);
     }

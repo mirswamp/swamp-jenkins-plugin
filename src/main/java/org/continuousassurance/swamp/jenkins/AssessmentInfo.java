@@ -27,7 +27,6 @@ import org.kohsuke.stapler.QueryParameter;
 import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
-import org.continuousassurance.swamp.cli.SwampApiWrapper.HostType;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
 
 import hudson.Extension;
@@ -44,17 +43,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	private final String platformUUID;
 	private static SwampApiWrapper api = null;
 	private static boolean midAccess = false; 
-	/*private static String username;
-	private static String password;*/
-
-	/*
-	public static void setUsername(String newUsername){
-		username = newUsername;
-	}
-	
-	public static void setPassword(String newPassword){
-		password = newPassword;
-	}*/
 	
 	public static void setApi(SwampApiWrapper newApi){
 		api = newApi;
@@ -92,30 +80,17 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	}
 	
 	@Override
-    public AssessmentInfoDescriptor getDescriptor() {
+    public DescriptorImpl getDescriptor() {
         // see Descriptor javadoc for more about what a descriptor is.
-        return (AssessmentInfoDescriptor)super.getDescriptor();
+        return (DescriptorImpl)super.getDescriptor();
     }
 	
 	@Extension 
-    public static class AssessmentInfoDescriptor extends Descriptor<AssessmentInfo> { 
+    public static class DescriptorImpl extends Descriptor<AssessmentInfo>{ 
 		
 		private String errorMessageTool;
 		private String errorMessagePlatform;
-		
-	    public AssessmentInfoDescriptor() {
-	        super(AssessmentInfo.class);
-	    }
-		//swamp-warnings.xml
-		/*
-        public String getPassword() {
-			return password;
-		}
-        
-        public String getUsername() {
-			return username;
-		}
-		*/
+
         /** 
          * Fills the Tool list based on the language provided
          * @param packageLanguage the language of the package
@@ -124,48 +99,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
          */
         public ListBoxModel doFillToolUUIDItems(@QueryParameter @RelativePath("..") String packageLanguage,
         		@QueryParameter @RelativePath("..") String projectUUID) {
-        	//String projectUUID = null;
-        	/*
-    		try {
-				Thread.sleep(500);
-	        	while (api == null || midAccess){
-					Thread.sleep(100);
-	        	}
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    		midAccess = true;
-			//SwampApiWrapper api;
-			try {
-				//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-				//api.login(username, password);
-				projectUUID = SwampPostBuild.getProjectByName(projectName,api).getUUIDString();
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-				errorMessageTool = "ERROR: Could not get project: " + e.getMessage() + ". Check your credentials in the global configuration.";
-				System.out.println(errorMessageTool);
-				error.add("","null");
-				midAccess = false;
-        		return error;
-			}
-    		*/
-        	/*
-        	for (int i = 0; i < 100 && projectUUID == null; i++){
-        		try {
-	        		if (api != null && api.isLoggedIn()){
-						projectUUID = api.getProjectFromName(projectName).getUUIDString();
-	        		}
-	        		Thread.sleep(50);
-    			} catch (Exception e) {
-    				ListBoxModel error = new ListBoxModel();
-    				errorMessageTool = "ERROR: Could not get project: " + e.getMessage() + ". Check your credentials in the global configuration.";
-    				System.out.println(errorMessageTool);
-    				error.add("","null");
-    				midAccess = false;
-            		//return error;
-    			}
-        	}*/
         	if (projectUUID == null){
         		ListBoxModel error = new ListBoxModel();
 				errorMessageTool = "ERROR: Could not get project UUID after 100 retries.";
@@ -174,7 +107,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 				midAccess = false;
         		return error;
         	}
-        	//System.out.println("Project is " + projectUUID);
 			if (packageLanguage == null){
 				try {
 	        		ListBoxModel error = new ListBoxModel();
@@ -182,7 +114,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	        		System.out.println(errorMessageTool);
 					error.add("","null");
 					midAccess = false;
-	        		//fillWithTools(api,packageLanguage,projectUUID,error);
 	        		return error;
 				} catch (Exception e) {
 					ListBoxModel error = new ListBoxModel();
@@ -201,7 +132,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	        		System.out.println(errorMessageTool);
 					error.add("","null");
 					midAccess = false;
-	        		//fillWithTools(api,packageLanguage,projectUUID,error);
 	        		return error;
 				} catch (Exception e) {
 					ListBoxModel error = new ListBoxModel();
@@ -214,7 +144,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
         	}
 			ListBoxModel items = new ListBoxModel();
 			List<Tool> toolList = null;
-			//System.out.println("Obtaining tool list with language = " + packageLanguage);
 			for (int i = 0; i < 100 && (toolList == null || toolList.isEmpty()); i++){
 	            try {
 	            	toolList = api.getTools(packageLanguage, projectUUID);
@@ -231,7 +160,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 				midAccess = false;
         		return error;
 			}
-			//System.out.println("Tool list is full");
             try {
             	Iterator<Tool> allTools = toolList.iterator();
     			items.add("","null");
@@ -251,7 +179,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 					System.out.println(errorMessageTool);
 					error.add("","null");
 					midAccess = false;
-	        		//fillWithTools(api,packageLanguage,projectUUID,error);
 	        		return error;
 				}
 			} catch (InvalidIdentifierException e) {
@@ -282,32 +209,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
          */
         public ListBoxModel doFillPlatformUUIDItems(@QueryParameter @RelativePath("..")
         			String projectUUID, @QueryParameter String toolUUID) {
-        	//String projectUUID = null;
-        	/*
-    		try {
-				Thread.sleep(1000);
-	        	while (api == null || midAccess){
-					Thread.sleep(100);
-	        	}
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    		midAccess = true;
-			//SwampApiWrapper api;
-			try {
-				//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-				//api.login(username, password);
-				projectUUID = SwampPostBuild.getProjectByName(projectName,api).getUUIDString();
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-				errorMessagePlatform = "ERROR: Could not get project: " + e.getMessage() + ". Check your credentials in the global configuration.";
-				System.out.println(errorMessagePlatform);
-				error.add("","null");
-				midAccess = false;
-        		return error;
-			}
-			*/
 			if (toolUUID == null || toolUUID.equals("null") || toolUUID.equals("")){
 				ListBoxModel error = new ListBoxModel();
 	        	errorMessagePlatform = "Please select a tool.";
@@ -317,43 +218,15 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	        	return error;
 			}
 			toolUUID = toolUUID.split(",")[0];
-			/*
-			for (int i = 0; i < 100 && projectUUID == null; i++){
-            	try {
-	        		if (api != null && api.isLoggedIn()){
-						projectUUID = api.getProjectFromName(projectName).getUUIDString();
-		        		Thread.sleep(50);
-	        		}
-				} catch (Exception e) {
-					ListBoxModel error = new ListBoxModel();
-		        	errorMessagePlatform = "Please select a tool.";
-		        	System.out.println(errorMessagePlatform);
-					error.add("","null");
-					midAccess = false;
-		        	//return error;
-				}
-        	}*/
 			if (projectUUID == null){
 				ListBoxModel error = new ListBoxModel();
         		errorMessagePlatform = "ERROR: project UUID not available after 100 retries.";
         		System.out.println(errorMessagePlatform);
 				error.add("","null");
 				midAccess = false;
-        		//fillWithPlatforms(api,error);
         		return error;
 			}
 			ListBoxModel items = new ListBoxModel();
-        	/*
-        	if (api.getTool(toolUUID, projectUUID) == null){
-        		ListBoxModel error = new ListBoxModel();
-        		errorMessagePlatform = "ERROR: Tool " + toolUUID + " does not exist. Please verify your tool and retry.";
-        		System.out.println(errorMessagePlatform);
-				error.add("","null");
-				midAccess = false;
-        		//fillWithPlatforms(api,error);
-        		return error;
-        	}
-     		*/
         	Iterator<String> availablePlatforms = null;
         	for (int i = 0; i < 100 && (availablePlatforms == null || !availablePlatforms.hasNext()); i++){
         		Tool currentTool = api.getTool(toolUUID, projectUUID);
@@ -381,15 +254,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
                 	try {
                 		nextPlatform = api.getPlatformFromName(nextUUID);
                 	} catch (Exception e) {
-                		/*
-        				ListBoxModel error = new ListBoxModel();
-        				errorMessagePlatform = "ERROR: Platforms do not exist: " + e.getMessage() + ". Please verify your tool and retry.";
-        				System.out.println(errorMessagePlatform);
-        				error.add("","null");
-        				midAccess = false;
-                		//fillWithPlatforms(api,error);
-                		return error;
-                		*/
         			}
         		}
     			items.add(nextPlatform.getName(),nextPlatform.getUUIDString());
@@ -400,27 +264,8 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 				System.out.println(errorMessagePlatform);
 				error.add("","null");
 				midAccess = false;
-        		//fillWithPlatforms(api,error);
         		return error;
 			}
-			/*
-			} catch (InvalidIdentifierException e) {
-				ListBoxModel error = new ListBoxModel();
-				errorMessagePlatform = "ERROR: Could not load platforms: " + e.getMessage();
-				System.out.println(errorMessagePlatform);
-				error.add("","null");
-				midAccess = false;
-        		return error;
-			} catch (Exception e) {
-				ListBoxModel error = new ListBoxModel();
-				errorMessagePlatform = "ERROR: Platforms do not exist: " + e.getMessage() + ". Please verify your tool and retry.";
-				System.out.println(errorMessagePlatform);
-				error.add("","null");
-				midAccess = false;
-        		//fillWithPlatforms(api,error);
-        		return error;
-			}
-			*/
 			midAccess = false;
             return items;
         }
@@ -435,7 +280,6 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
     	
         public boolean multiplePlatforms(@QueryParameter @RelativePath("..")
     	String projectName, @QueryParameter String toolUUID){
-        	//System.out.println("project name: " + projectName + ", tool UUID: " + toolUUID);
         	try {
     			String myProject = api.getProjectFromName(projectName).getUUIDString();
             	return (api.getTool(toolUUID, myProject).getSupportedPlatforms().size() >= 1);
@@ -480,7 +324,7 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
         }
 		
         public String getDisplayName() {
-        	return DescriptorImpl.DISPLAY_NAME + " Parameters";
+        	return org.continuousassurance.swamp.jenkins.DescriptorImpl.PLUGIN_DISPLAY_NAME;
         } 
     }
 }

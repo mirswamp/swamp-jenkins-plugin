@@ -153,15 +153,15 @@ public class SwampResult extends BuildResult {
         return newThisWeek;
     }
 
-//    /**
-//     */ Gets the number of bugs which are not stored in the FindBugs Cloud.
-//     *
-//     * @return the number of bugs which are not stored in the FindBugs Cloud
-//     */
-    /*
+    /**
+     * Gets the number of bugs which are not stored in the FindBugs Cloud.
+     *
+     * @return the number of bugs which are not stored in the FindBugs Cloud
+     */
+    
     public int getNotInCloud() {
         return notInCloud;
-    }*/
+    }
 
     @Override
     protected String getSerializationFileName() {
@@ -170,7 +170,7 @@ public class SwampResult extends BuildResult {
 
     @Override
     public String getDisplayName() {
-    	return DescriptorImpl.DISPLAY_NAME + " Result";
+    	return DescriptorImpl.PLUGIN_DISPLAY_NAME;
     }
 
     @Override

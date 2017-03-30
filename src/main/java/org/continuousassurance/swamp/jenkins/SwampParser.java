@@ -51,8 +51,7 @@ import hudson.plugins.analysis.util.model.FileAnnotation;
 import hudson.plugins.analysis.util.model.LineRange;
 import hudson.plugins.analysis.util.model.Priority;
 
-import org.continousassurance.scarf.ScarfXmlReader;
-import org.continousassurance.scarf.datastructures.BugInstance;
+import org.continuousassurance.scarf.datastructures.BugInstance;
 
 /**
  * A parser for the native SWAMP XML files for each tool in an assessment.
@@ -155,8 +154,7 @@ public class SwampParser implements AnnotationParser {
 
     @Override
     public Collection<FileAnnotation> parse(final File file, final String moduleName) throws InvocationTargetException {
-    	ScarfXmlReader r = new ScarfXmlReader();
-		r.parseFromFile(file);
+    	ScarfParser r = new ScarfParser(file);
 		
 		Collection<FileAnnotation> bug_collection = new ArrayList<FileAnnotation>();
 		
@@ -165,7 +163,7 @@ public class SwampParser implements AnnotationParser {
 			try {
 				bug_priority = getPriority(Integer.parseInt(bug_inst.getBugSeverity()));
 			}catch (NumberFormatException e){
-				bug_priority = Priority.LOW;
+				bug_priority = Priority.LOW;//TODO if no priority exists?
 			}
 			int bug_start_line;
 			int bug_end_line;
@@ -179,11 +177,13 @@ public class SwampParser implements AnnotationParser {
 				bug_end_line = 0;
 				source_file = "";//TODO find any source file available
 			}
+			//String bugOrigin = bug_inst.getBugGroup();
+			//String bugOrigin = file.getName().split("-")[file.getName().split("-").length];
 			Bug bug = new Bug(bug_priority,					
 					bug_inst.getBugMessage(), 
 					bug_inst.getBugGroup(), 
 					bug_inst.getBugCode(),
-					file.getName(),
+					r.getToolName(),
 					bug_start_line, 
 		            bug_end_line);
 			

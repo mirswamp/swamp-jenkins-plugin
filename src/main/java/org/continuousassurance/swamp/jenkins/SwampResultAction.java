@@ -57,7 +57,7 @@ public class SwampResultAction extends AbstractResultAction<SwampResult> {
 
     @Override
     public String getDisplayName() {
-        return DescriptorImpl.DISPLAY_NAME + " Action";
+        return DescriptorImpl.PLUGIN_DISPLAY_NAME;
     }
 
     @Override

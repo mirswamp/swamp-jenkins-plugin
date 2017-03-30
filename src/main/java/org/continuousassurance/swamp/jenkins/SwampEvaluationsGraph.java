@@ -52,7 +52,7 @@ public class SwampEvaluationsGraph extends CategoryBuildResultGraph {
 
     @Override
     public String getLabel() {
-        return Messages.FindBugs_EvaluationsGraph_title();
+        return /*hudson.plugins.findbugs.*/Messages.FindBugs_EvaluationsGraph_title();
     	//return "hudson.plugins.findbugs.Messages.FindBugs_EvaluationsGraph_title";
     }
 
@@ -80,6 +80,7 @@ public class SwampEvaluationsGraph extends CategoryBuildResultGraph {
     protected CategoryItemRenderer createRenderer(final GraphConfiguration configuration, final String pluginName, final ToolTipProvider toolTipProvider) {
         CategoryUrlBuilder url = new UrlBuilder(getRootUrl(), pluginName);
         ToolTipBuilder toolTip = new DescriptionBuilder(toolTipProvider);
+        
         if (configuration.useBuildDateAsDomain()) {
             return new ToolTipBoxRenderer(toolTip);
         }

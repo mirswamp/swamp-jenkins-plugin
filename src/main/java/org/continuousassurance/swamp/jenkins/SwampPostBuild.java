@@ -63,7 +63,6 @@ import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
-import org.continuousassurance.swamp.cli.SwampApiWrapper.HostType;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
 
 import java.io.File;
@@ -147,19 +146,21 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	private final String buildTarget;
 	private final String buildCommand;
 	private final String buildOptions;
+	private final String configOptions;
 	private final String cleanCommand;
-	private final boolean outputToFile;
 	private final String outputDir;
-	private final boolean sendEmail;
-	private final String email;
+	//private final boolean sendEmail;
+	//private final String emailAddr;
     private String defaultEncoding;
 	
 	private String projectName;
 	private String archiveName;
 	
+	private static SwampApiWrapper api;
+	
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String outputDir, boolean sendEmail, boolean outputToFile, String email, String cleanCommand) {
+    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configOptions, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
         this.username = getDescriptor().getUsername();
         this.password = getDescriptor().getPassword();
@@ -176,13 +177,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
         this.buildTarget = buildTarget;
         this.buildCommand = buildCommand;
         this.buildOptions = buildOptions;
-    	this.sendEmail = sendEmail;
-    	this.outputToFile = outputToFile;
-    	this.email = email;
+        this.configOptions = configOptions;
+    	//this.sendEmail = sendEmail;
+    	//this.emailAddr = emailAddr;
     	this.packageVersion = packageVersion;
-        if (outputDir != null && outputDir.equals("")){
-    		outputDir = "Assessment_Output";
-    	}
         this.outputDir = outputDir;
     	if (cleanCommand != null && cleanCommand.equals("")){
     		if (buildSystem.equals("maven")){
@@ -259,7 +257,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
     	
     	//Login to the SWAMP
-        SwampApiWrapper api;
+        /*SwampApiWrapper api;
     	try {
     		api = DescriptorImpl.login(username, password, hostUrl);
 			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
@@ -268,7 +266,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("[ERROR] Error logging in: " + e.getMessage() + ". Check your credentials in the global configuration.");
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
-		}
+		}*/
     	
     	//Get project, tool, and platform uuids given the names
     	try {
@@ -353,9 +351,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		// Upload the package
 		String packageUUID;
 		try {
-			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID + ", "  + api.getConnectedHostName());
+			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID);
 			packageUUID = api.uploadPackage(configPath.getRemote(),
-					archivePath.getRemote(), projectUUID, false);
+					archivePath.getRemote(), projectUUID, true);
+			logger.log("Config exists - " + new File(configPath.getRemote()).exists());
+			logger.log("Archive exists - " + new File(archivePath.getRemote()).exists());
 		} catch (InvalidIdentifierException e) {
 			logger.log("[ERROR] Could not upload Package: "
 					+ e.getMessage());
@@ -365,7 +365,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		if (getDescriptor().getVerbose()){
 			logger.log("Package Uploaded. UUID id " + packageUUID);
 		}
-		//*Delete the package archive and config file since they are no longer needed
+		/*Delete the package archive and config file since they are no longer needed
 		try {
 			configPath.delete();
 			archivePath.delete();
@@ -377,7 +377,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("[ERROR] Deletion of straggler files interrupted: " + e.getMessage());
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
-		}
+		}*/
 		
 		//Deal with the "all" option
 		List<AssessmentInfo> assessmentsToRun = new ArrayList<AssessmentInfo>();
@@ -404,12 +404,13 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			}
 		}
 		
-		if (sendEmail){
+		/*if (sendEmail){
+		 	//var emailAddr contains string of email
 			//TODO Email results when complete
-		}
+		}*/
 		
 		ArrayList<String> assessmentNames = new ArrayList<String>();
-		if (!getDescriptor().getBackgroundAssess() || outputToFile){
+		//if (!getDescriptor().getBackgroundAssess()){
 			FilePath outputPath = new FilePath(workspace, outputDir);
 			try {
 				outputPath.mkdirs();
@@ -418,7 +419,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				//build.setResult(Result.FAILURE);
 			}
 	    	//For each assessment
-			Project project = api.getProject(projectUUID);
+			Project projectAPI = api.getProject(projectUUID);
 			for (int i = 0; i < assessmentUUIDs.length; i++){
 				AssessmentRecord assessmentRecord = null;
 				String assessmentResults = "null";
@@ -426,7 +427,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				String assessmentName;
 				try {
 					//assessmentName = "swampXml.xml";
-					assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID) + "-" + assessmentsToRun.get(i).getPlatformName(api)).replace(' ', '_') + ".xml";
+					assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
 					assessmentName = assessmentName.replace("/", "-");
 					logger.log("Assessment added: assessment name = " + assessmentName);
 				} catch (Exception e) {
@@ -436,7 +437,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				//Wait until the assessment is complete
 				while (assessmentResults.equals("null")){
 					assessmentRecord = null;
-					for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(project)) {
+					for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectAPI)) {
 						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i])){
 							assessmentRecord = executionRecord;
 						}
@@ -481,7 +482,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
 				logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
 			}
-		}
+		//}
 
 		//Log out
 		if (getDescriptor().getVerbose()){
@@ -492,22 +493,32 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		logger.log("Collecting SWAMP analysis files...");
 
 		SwampResult result = null;
+		//Add every assessment matching this file pattern
 		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion.replace("/", "-") + "*";
+		//Prepare the parser with the given files
         FilesParser collector = new FilesParser("SWAMP",
                 assessmentPattern,
                 new SwampParser(workspace, false, null, null), 
                 false,false);
+        //Run the parser
         ParserResult project = workspace.act(collector);
         logger.log(project.getLogMessages());
+        //Save the results
         result = new SwampResult(build, defaultEncoding, project,
                 true,true);
-
+        //Post-Process the results into data for the analysis-core plugin
         build.addAction(new SwampResultAction(build, this, result));
-
+        //Return the results
         return result;
     	
     }
 
+    /**
+     * Attempts to verify the build without uploading or building
+     * @param workspace the directory of the workspace
+     * @param logger the logger in Jenkins for any output of errors
+     * @return if the build file is validated
+     */
     private boolean checkBuild (FilePath workspace, PluginLogger logger){
     	FilePath buildFile;
     	if (this.buildFile.equals("")){
@@ -583,6 +594,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		}
 		
     }
+    
     /**
      * Zips the package for uploading
      * @param workspace the directory of the workspace
@@ -613,6 +625,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		return archivePath;
 		
     }
+    
     /**
      * Writes a configuration file for the package to be uploaded
      * @param workspace directory of the workspace of the package
@@ -660,7 +673,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		writer.println("package-archive-md5=" + md5hash);
 		writer.println("package-archive-sha512=" + sha512hash);
 		writer.println("package-language=" + packageLanguage);
-		if (packageLanguageVersion.equals("")){
+		if (!packageLanguageVersion.equals("")){
 			writer.println("package-language-version=" + packageLanguageVersion);
 		}
 		if (packageDir.equals("")){
@@ -683,6 +696,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		}
 		if (!buildCommand.equals("")){
 			writer.println("build-cmd=" + buildCommand);
+		}
+		if (!configOptions.equals("")){
+			writer.println("config-opt=" + configOptions);
 		}
 		writer.close();
 		if (getDescriptor().getVerbose()){
@@ -712,6 +728,14 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		}
 	}
 
+    public static SwampApiWrapper getSwampApi() {
+    	return api;
+    }
+
+    public static void setApi(SwampApiWrapper newApi) {
+    	api = newApi;
+    }
+    
     //All getters used by Jenkins to save configurations
     public String getUsername() {
     	return username;
@@ -781,17 +805,13 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		return outputDir;
 	}
     
-    public boolean getSendEmail() {
+    /*public boolean getSendEmail() {
 		return sendEmail;
 	}
     
     public String getEmail() {
 		return email;
-	}
-    
-    public boolean getOutputToFile() {
-		return outputToFile;
-	}
+	}*/
     
     public String getIconPath() {
     	PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin("SwampPreBuild");
@@ -805,7 +825,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 
     @Override
     public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl)super.getDescriptor();
+    	return (DescriptorImpl)super.getDescriptor();
     }
     
     @Override
@@ -815,12 +835,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
                 usePreviousBuildAsReference(), useOnlyStableBuildsAsReference());
     }
     
-	@Override
-    /*public DescriptorImpl getDescriptor() {
-        // see Descriptor javadoc for more about what a descriptor is.
-        return (DescriptorImpl)super.getDescriptor();
-    }*/
-
     public void setDefaultEncoding(final String defaultEncoding) {
         this.defaultEncoding = defaultEncoding;
     }
