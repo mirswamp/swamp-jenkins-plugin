@@ -40,10 +40,6 @@ public class ScarfParser implements ScarfInterface {
 	 * Name of platform on which assessment was run
 	 */
 	private String platform;
-	/**
-	 * Map from source file name to a list of bugs found in that file
-	 */
-	private Map<String, List<BugInstance>> fileBugs;
 	
 	/**
 	 * Constructor for ResultsParser
@@ -55,7 +51,6 @@ public class ScarfParser implements ScarfInterface {
 		metrics = new ArrayList<>();
 		metricSummaries = new ArrayList<>();
 		bugSummaries = new ArrayList<>();
-		fileBugs = new HashMap<>();
 		reader.parseFromFile(f);
 	}
 	
@@ -68,7 +63,6 @@ public class ScarfParser implements ScarfInterface {
 		info = initial;
 		tool = info.getToolName() + " " + info.getToolVersion();
 		platform = "?"; // TODO: Get the actual Platform once SCARF is updated
-		System.out.println("Tool = " + tool);
 	}
 	
 	@Override
@@ -95,21 +89,7 @@ public class ScarfParser implements ScarfInterface {
 	 * @param bug BugInstance that was just parsed from SCARF file
 	 */
 	public void bugCallback(BugInstance bug) {
-		for (Location l : bug.getLocations()) {
-			if (l.isPrimary()) {
-				String filename = l.getSourceFile();
-				if (fileBugs.containsKey(filename)) {
-					bugs = fileBugs.get(filename);
-				}
-				else {
-					bugs = new ArrayList<>();
-					//System.out.println("Filename used: " + filename);
-				}
-				bugs.add(bug);
-				fileBugs.put(filename, bugs);
-				break;
-			}
-		}
+		bugs.add(bug);
 	}
 	
 	@Override
@@ -119,20 +99,6 @@ public class ScarfParser implements ScarfInterface {
 	 */
 	public void bugSummaryCallback(BugSummary summary) {
 		bugSummaries.add(summary);
-	}
-	
-	/**
-	 * Given the name of a file, returns the bugs found in that file
-	 * @param filename source code file name
-	 * @return list of bugs found in that file
-	 */
-	public List<BugInstance> getFileBugs(String filename) {
-		if (fileBugs.containsKey(filename)) {
-			return fileBugs.get(filename);
-		}
-		else {
-			return new ArrayList<BugInstance>();
-		}
 	}
 	
 	/**
