@@ -190,7 +190,7 @@ public class SwampParser implements AnnotationParser {
 			//System.out.println(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));
 			//bug.setFileName(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));
 			bug.setFileName(getProjectDir().toString() + '/' + source_file);
-			bug.setInstanceHash(String.valueOf(bug_inst.getBugId()));
+			bug.setInstanceHash(String.valueOf(r.getToolName() + bug_inst.getBugId()));
 			try {
 				bug.setRank(Integer.parseInt(bug_inst.getBugRank()));
 			}catch (NumberFormatException e){
