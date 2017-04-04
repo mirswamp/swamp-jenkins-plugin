@@ -87,7 +87,7 @@ public class Bug extends AbstractAnnotation {
             final int start, final int end) {
         //super(priority, message, start, end, category, type);
         //super(priority, message, start, end, origin, type);
-    	super(priority, message, start, end, origin + ": " + category, type);
+    	super(priority, message, start, end, origin + ":" + category, type);
         ORIGIN = origin;
         setOrigin(origin);
     }

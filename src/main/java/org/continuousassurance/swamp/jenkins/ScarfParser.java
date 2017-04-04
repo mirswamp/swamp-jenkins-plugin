@@ -61,7 +61,7 @@ public class ScarfParser implements ScarfInterface {
 	 */
 	public void initialCallback(InitialInfo initial) {
 		info = initial;
-		tool = info.getToolName() + " " + info.getToolVersion();
+		tool = info.getToolName();
 		platform = "?"; // TODO: Get the actual Platform once SCARF is updated
 	}
 	
