@@ -77,6 +77,9 @@ limitations under the License.
     <f:entry title="Build Options" field="buildOptions">
      <f:textbox />
     </f:entry>
+    <f:entry title="Configuration Command" field="configCommand">
+     <f:textbox />
+    </f:entry>
     <f:entry title="Configuration Options" field="configOptions">
      <f:textbox />
     </f:entry>

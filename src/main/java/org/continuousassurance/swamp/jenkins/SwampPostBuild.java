@@ -146,6 +146,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	private final String buildTarget;
 	private final String buildCommand;
 	private final String buildOptions;
+	private final String configCommand;
 	private final String configOptions;
 	private final String cleanCommand;
 	private final String outputDir;
@@ -160,7 +161,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configOptions, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
+    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configCommand, String configOptions, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
         this.username = getDescriptor().getUsername();
         this.password = getDescriptor().getPassword();
@@ -177,6 +178,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         this.buildTarget = buildTarget;
         this.buildCommand = buildCommand;
         this.buildOptions = buildOptions;
+        this.configCommand = configCommand;
         this.configOptions = configOptions;
     	//this.sendEmail = sendEmail;
     	//this.emailAddr = emailAddr;
@@ -698,6 +700,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			writer.println("build-cmd=" + buildCommand);
 		}
 		if (!configOptions.equals("")){
+			writer.println("config-cmd=" + configCommand);
+		}
+		if (!configOptions.equals("")){
 			writer.println("config-opt=" + configOptions);
 		}
 		writer.close();
@@ -799,6 +804,14 @@ public class SwampPostBuild extends HealthAwarePublisher {
     
     public String getBuildOptions() {
     	return buildOptions;
+    }
+    
+    public String getConfigCommand() {
+    	return configCommand;
+    }
+    
+    public String getConfigOptions() {
+    	return configOptions;
     }
     
     public String getOutputDir() {
