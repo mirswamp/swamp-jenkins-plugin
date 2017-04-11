@@ -59,11 +59,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 import org.continuousassurance.swamp.api.AssessmentRecord;
+import org.continuousassurance.swamp.api.PackageThing;
 import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
+import org.continuousassurance.swamp.session.HTTPException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -274,8 +276,13 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	try {
 			getUUIDsFromNames(api,logger);
 		} catch (Exception e) {
-			//build.setResult(Result.FAILURE);
-			return emptyResult;
+	    	try {
+	    		api = DescriptorImpl.login(uploadVersion, password, hostUrl);
+				getUUIDsFromNames(api,logger);
+			} catch (Exception e2) {
+				//build.setResult(Result.FAILURE);
+				return emptyResult;
+			}
 		}
     	
     	//Duplicate the workspace for cleaning
@@ -355,7 +362,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		try {
 			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID);
 			packageUUID = api.uploadPackage(configPath.getRemote(),
-					archivePath.getRemote(), projectUUID, true);
+					archivePath.getRemote(), projectUUID, isNewPackage(packageName));
 			logger.log("Config exists - " + new File(configPath.getRemote()).exists());
 			logger.log("Archive exists - " + new File(archivePath.getRemote()).exists());
 		} catch (InvalidIdentifierException e) {
@@ -363,6 +370,17 @@ public class SwampPostBuild extends HealthAwarePublisher {
 					+ e.getMessage());
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
+		} catch (HTTPException e){
+			try {
+	    		api = DescriptorImpl.login(uploadVersion, password, hostUrl);
+				packageUUID = api.uploadPackage(configPath.getRemote(),
+						archivePath.getRemote(), projectUUID, true);
+			} catch (Exception e1) {
+				logger.log("[ERROR] Could not upload Package: "
+						+ e1.getMessage());
+				//build.setResult(Result.FAILURE);
+				return emptyResult;
+			}
 		}
 		if (getDescriptor().getVerbose()){
 			logger.log("Package Uploaded. UUID id " + packageUUID);
@@ -413,84 +431,83 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		
 		ArrayList<String> assessmentNames = new ArrayList<String>();
 		//if (!getDescriptor().getBackgroundAssess()){
-			FilePath outputPath = new FilePath(workspace, outputDir);
+		FilePath outputPath = new FilePath(workspace, outputDir);
+		try {
+			outputPath.mkdirs();
+		} catch (IOException | InterruptedException e) {
+			logger.log("[ERROR] Could not create output directory: " + e.getMessage());
+			//build.setResult(Result.FAILURE);
+		}
+    	//For each assessment
+		Project projectAPI = api.getProject(projectUUID);
+		for (int i = 0; i < assessmentUUIDs.length; i++){
+			AssessmentRecord assessmentRecord = null;
+			String assessmentResults = "null";
+			String previousStatus = null;
+			String assessmentName;
 			try {
-				outputPath.mkdirs();
-			} catch (IOException | InterruptedException e) {
-				logger.log("[ERROR] Could not create output directory: " + e.getMessage());
-				//build.setResult(Result.FAILURE);
+				//assessmentName = "swampXml.xml";
+				assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
+				assessmentName = assessmentName.replace("/", "-");
+				logger.log("Assessment added: assessment name = " + assessmentName);
+			} catch (Exception e) {
+				logger.log("[ERROR] Tool / Platform missing unexpectedly: " + e.getMessage());
+				return emptyResult;
 			}
-	    	//For each assessment
-			Project projectAPI = api.getProject(projectUUID);
-			for (int i = 0; i < assessmentUUIDs.length; i++){
-				AssessmentRecord assessmentRecord = null;
-				String assessmentResults = "null";
-				String previousStatus = null;
-				String assessmentName;
-				try {
-					//assessmentName = "swampXml.xml";
-					assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
-					assessmentName = assessmentName.replace("/", "-");
-					logger.log("Assessment added: assessment name = " + assessmentName);
-				} catch (Exception e) {
-					logger.log("[ERROR] Tool / Platform missing unexpectedly: " + e.getMessage());
-					return emptyResult;
-				}
-				//Wait until the assessment is complete
-				while (assessmentResults.equals("null")){
-					assessmentRecord = null;
-					for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectAPI)) {
-						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i])){
-							assessmentRecord = executionRecord;
-						}
-					}
-					if (assessmentRecord == null){
-						logger.log("[ERROR] AssessmentRun " + assessmentUUIDs[i] + " not found");
-						//build.setResult(Result.FAILURE);
-						return emptyResult;
-					}
-					assessmentResults = assessmentRecord.getAssessmentResultUUID();
-					if (!assessmentRecord.getStatus().equals(previousStatus)){
-						logger.log("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
-						previousStatus = assessmentRecord.getStatus();
-					}
-					if (assessmentResults.equals("null")){
-						try {
-							Thread.sleep(30000);
-						} catch (InterruptedException e) {
-							logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
-							//build.setResult(Result.FAILURE);
-							return emptyResult;
-						}
+			//Wait until the assessment is complete
+			while (assessmentResults.equals("null")){
+				assessmentRecord = null;
+				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectAPI)) {
+					if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i])){
+						assessmentRecord = executionRecord;
 					}
 				}
-
-				//Save the assessment to the requested spot
-				FilePath newFile = new FilePath(workspace,outputDir + "/" + assessmentName);
-				try {
-					int fileNum = 0;
-					while (newFile.exists()){
-						fileNum++;
-						newFile = new FilePath(workspace,outputDir + "/" + assessmentName.replace("/", "-") + "(" + fileNum + ")");
-					}
-				} catch (IOException | InterruptedException e) {
-					logger.log("[ERROR] Failed to check files: " + e.getMessage());
+				if (assessmentRecord == null){
+					logger.log("[ERROR] AssessmentRun " + assessmentUUIDs[i] + " not found");
 					//build.setResult(Result.FAILURE);
 					return emptyResult;
 				}
-				if (getDescriptor().getVerbose()){
-		    		logger.log("Assessment finished. Writing results to " + newFile.getRemote());
+				assessmentResults = assessmentRecord.getAssessmentResultUUID();
+				if (!assessmentRecord.getStatus().equals(previousStatus)){
+					logger.log("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
+					previousStatus = assessmentRecord.getStatus();
 				}
-				api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
-				logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
+				if (assessmentResults.equals("null")){
+					try {
+						Thread.sleep(30000);
+					} catch (InterruptedException e) {
+						logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
+						//build.setResult(Result.FAILURE);
+						return emptyResult;
+					}
+				}
 			}
-		//}
+
+			//Save the assessment to the requested spot
+			FilePath newFile = new FilePath(outputPath,assessmentName);
+			try {
+				int fileNum = 0;
+				while (newFile.exists()){
+					fileNum++;
+					newFile = new FilePath(outputPath,assessmentName.replace("/", "-") + "(" + fileNum + ")");
+				}
+			} catch (IOException | InterruptedException e) {
+				logger.log("[ERROR] Failed to check files: " + e.getMessage());
+				//build.setResult(Result.FAILURE);
+				return emptyResult;
+			}
+			if (getDescriptor().getVerbose()){
+	    		logger.log("Assessment finished. Writing results to " + newFile.getRemote());
+			}
+			api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
+			logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
+		}
 
 		//Log out
 		if (getDescriptor().getVerbose()){
 			logger.log("Logging out");
 		}
-		api.logout();
+		//api.logout();
 		
 		logger.log("Collecting SWAMP analysis files...");
 
@@ -699,7 +716,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		if (!buildCommand.equals("")){
 			writer.println("build-cmd=" + buildCommand);
 		}
-		if (!configOptions.equals("")){
+		if (!configCommand.equals("")){
 			writer.println("config-cmd=" + configCommand);
 		}
 		if (!configOptions.equals("")){
@@ -732,6 +749,17 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			return null;
 		}
 	}
+    
+    private boolean isNewPackage (String packageName) {
+    	List<PackageThing> myPackages = api.getPackagesList(projectUUID);
+    	Iterator<PackageThing> myPackageIterator = myPackages.iterator();
+    	while (myPackageIterator.hasNext()){
+    		if (myPackageIterator.next().getName().equalsIgnoreCase(packageName)){
+    			return false;
+    		}
+    	}
+    	return true;
+    }
 
     public static SwampApiWrapper getSwampApi() {
     	return api;

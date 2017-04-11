@@ -59,7 +59,7 @@ public final class DescriptorImpl extends PluginDescriptor{
     /** Icons prefix. */
     static final String ICON_URL_PREFIX = "/plugin/swamp/icons/";
     /** Icon to use for the result and project action. */
-    static final String ICON_URL = ICON_URL_PREFIX + "swamp-24x24.png";
+    static final String ICON_URL = ICON_URL_PREFIX + "swamp-logo-small.png";
 
     private String username;
 	private String password;

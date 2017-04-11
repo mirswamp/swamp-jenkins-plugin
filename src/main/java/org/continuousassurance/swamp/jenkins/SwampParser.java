@@ -179,13 +179,24 @@ public class SwampParser implements AnnotationParser {
 			}
 			//String bugOrigin = bug_inst.getBugGroup();
 			//String bugOrigin = file.getName().split("-")[file.getName().split("-").length];
+			String category = r.getToolName();
+			if (bug_inst.getBugGroup() != null && !bug_inst.getBugGroup().equals("") && !bug_inst.getBugGroup().equals("null")){
+				category += ":" + bug_inst.getBugGroup();
+			}
 			Bug bug = new Bug(bug_priority,					
 					bug_inst.getBugMessage(), 
 					bug_inst.getBugGroup(), 
-					bug_inst.getBugCode(),
+					category,
 					r.getToolName(),
 					bug_start_line, 
 		            bug_end_line);
+			
+			String bugTooltip = null;
+			if (bug_inst.getResolutionSuggestion() != null  && !bug_inst.getResolutionSuggestion().equals("")){
+				bugTooltip = "Resolution Suggestion:\n" + bug_inst.getResolutionSuggestion();
+			}
+			
+			bug.setTooltip(bugTooltip);
 			
 			//System.out.println(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));
 			//bug.setFileName(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));

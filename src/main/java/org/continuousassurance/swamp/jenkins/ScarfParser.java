@@ -62,6 +62,7 @@ public class ScarfParser implements ScarfInterface {
 	public void initialCallback(InitialInfo initial) {
 		info = initial;
 		tool = info.getToolName();
+		System.out.println("Initial call back - " + initial.getUUID());
 		platform = "?"; // TODO: Get the actual Platform once SCARF is updated
 	}
 	
@@ -71,6 +72,7 @@ public class ScarfParser implements ScarfInterface {
 	 * @param metric Metric that was just parsed from SCARF file
 	 */
 	public void metricCallback(Metric metric) {
+		System.out.println("Metric added: " + metric.getMetricType() + " - " + metric.getMetricValue());
 		metrics.add(metric);
 	}
 	
@@ -80,6 +82,7 @@ public class ScarfParser implements ScarfInterface {
 	 * @param summary MetricSummary that was just parsed from SCARF file
 	 */
 	public void metricSummaryCallback(MetricSummary summary) {
+		System.out.println("Metric Summary added: " + summary.getMetricType() + " - " + summary.getMin() + " to " + summary.getMax());
 		metricSummaries.add(summary);
 	}
 

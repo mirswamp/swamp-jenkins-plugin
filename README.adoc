@@ -5,6 +5,12 @@ Jared Sweetland, Vamshi Basupalli, James A. Kupsch
 :toc:
 :numbered:
 
+== Intro:
+This plugin allows you to submit SWAMP assessments during Jenkins builds.
+The SWAMP assessment will use configurable tools to test your source code for vulnerabilities and flaws.
+For more information on the SWAMP, visit https://continuousassurance.org
+For more information on Jenkins, visit https://jenkins.io/
+
 == Prerequisites:
 The usage of this plugin requires that you already have the following:
 
@@ -37,14 +43,14 @@ NOTE: Not available yet.
 
 === Install from a .hpi File
 The SWAMP Jenkins plugin can be installed directly from
-SWAMP-Jenkins-Plugin-{plugin-ver}.hpi file using the following steps:
+SWAMP.hpi file using the following steps:
 
-. Aquire the SWAMP-Jenkins-Plugin-{plugin-ver}.hpi on your computer
+. Aquire the SWAMP.hpi on your computer
 . Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Manage Plugins_
 . Click the _Advanced_ tab
 . In the *_Upload Plugin_* section, click the Browse button and select the
-  SWAMP-Jenkins-Plugin-{plugin-ver}.hpi file on your computer
+  SWAMP.hpi file on your computer
 . Click the _Upload_ button
 . Click the _install without restart_ button
 . Click the _Go back to the top page_ link
@@ -118,10 +124,12 @@ the _Package Directory_.  The directory is relative this the _Package Directory_
 (i.e. _build.xml_ for Ant, _pom.xml_ for Maven, _Makefile_ for Make)
 Enter a value if the build file is using a non standard name. The name is relative to the _Build Directory_.
 |Build Target |If building your package requires a special build target, enter it here, otherwise leave blank
-|Build Command |If you package requires a non-standard build command, enter it here, otherwise leave blank and the command will be determined by the _Build System_.
-|Build Options a|If you package requires options to passed to the build command, enter it
+|Build Command |If your package requires a non-standard build command, enter it here, otherwise leave blank and the command will be determined by the _Build System_.
+|Build Options |If your package requires options to passed to the build command, enter it
 here (e.g. `--verbose --setInt 1`), otherwise leave blank.
 Add multiple options separated by spaces as usual.
+|Configuration Command |If your package requires a configuration command, enter it here. If left blank, the configuration will be called without a command.
+|Configuration Options |If your package requires configuration options, enter them here similarly to the build options.
 |Clean Command a|Enter the command to clean your build.
 Leave blank to use the `[build-system] clean`
 2+|*Assessment Settings*
@@ -130,10 +138,8 @@ Leave blank to use the `[build-system] clean`
 |Tool |Select the tool you would like to use for this assessment.
 |Platform |Select the platform you would like to use for this assessment.
 2+|*Output Settings*
-|Fetch SCARF Output to Jenkins |Fetch the SCARF (SWAMP Common Assessment Results Format) file of the successful assessment to your Jenkins workspace.
-|Send Email when Results are Ready a|Have the SWAMP send an email when the assessment completes.
+|Assessment Output Directory |Places the output of the assessments from the SWAMP in this directory from the workspace.
 
-NOTE: Not yet implemented
 |==========================
 
 == Running an Assessment
@@ -142,9 +148,11 @@ To view the status of your build, go to _your project_ -> _build *_ (listed on t
 
 == Viewing your Results
 
-NOTE: Support will be added in the future to view the results directly on Jenkins
+Results from the assessments are viewable in Jenkins on completion.
+These results will be viewable in the source code, and will also be parsed into a graph.
+This graph is configurable by clicking the _configure_ link beneath the graph.
 
-The SWAMP web site can be used to view results of your assessments:
+Otherwise, the SWAMP web site can be used to view results of your assessments:
 
 . Login to the SWAMP as normal.
 . Click _Results_

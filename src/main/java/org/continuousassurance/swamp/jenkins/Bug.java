@@ -20,6 +20,7 @@
 package org.continuousassurance.swamp.jenkins;
 
 import javax.annotation.CheckForNull;
+
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -28,9 +29,9 @@ import org.apache.commons.lang.StringUtils;
 import org.jvnet.localizer.LocaleProvider;
 
 import jenkins.model.Jenkins;
-
 import hudson.plugins.analysis.util.model.AbstractAnnotation;
 import hudson.plugins.analysis.util.model.Priority;
+
 import org.continuousassurance.swamp.Messages;
 
 /**
@@ -87,11 +88,13 @@ public class Bug extends AbstractAnnotation {
             final int start, final int end) {
         //super(priority, message, start, end, category, type);
         //super(priority, message, start, end, origin, type);
-    	super(priority, message, start, end, origin + ":" + category, type);
-        ORIGIN = origin;
+    	super(priority, message, start, end, category, type);
+    	//this.setDetailsUrlTemplate("https://www.google.com/");
+    	//System.out.println("Details: " + this.detailsUrl);
+    	ORIGIN = origin;
         setOrigin(origin);
     }
-
+    
     /**
      * Creates a new instance of <code>Bug</code>.
      *
@@ -147,7 +150,6 @@ public class Bug extends AbstractAnnotation {
     public Bug(final Priority priority, final String message, final String category, final String type,
             final int start, final int end, final String tooltip) {
         this(priority, message, category, type, "unavailable", start, end);
-
         this.tooltip = tooltip;
     }
 
@@ -249,8 +251,12 @@ public class Bug extends AbstractAnnotation {
 
     @Override
     public String getToolTip() {
-        return StringUtils.defaultIfEmpty(tooltip, FindBugsMessages.getInstance().getMessage(getType(), LocaleProvider.getLocale()));
+    	return StringUtils.defaultIfEmpty(tooltip, "");
     }
+
+	public void setTooltip(String tooltip) {
+		this.tooltip = tooltip;
+	}
 
     @Override
     public String getMessage() {

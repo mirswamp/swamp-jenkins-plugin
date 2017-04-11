@@ -18,7 +18,7 @@ limitations under the License.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
  <f:section title="">
-  <img type="image/svd+xml" src="${rootURL}/org/continuousassurance/swamp/jenkins/SwampPostBuild/swamp-logo-small.png" />
+  <img type="image/svd+xml" src="${rootURL}/plugin/swamp/icons/swamp-logo-medium.png" />
  </f:section>
  <!--http://localhost:8080/org/continuousassurance/swamp/swamp-logo-large.png-->
  <j:if test="${descriptor.loginFail}">
@@ -83,9 +83,9 @@ limitations under the License.
     <f:entry title="Configuration Options" field="configOptions">
      <f:textbox />
     </f:entry>
-    <f:entry title="Clean Command" field="cleanCommand">
+    <!--<f:entry title="Clean Command" field="cleanCommand">
      <f:textbox />
-    </f:entry>
+    </f:entry>-->
    <!--/f:advanced-->
   </f:section>
    <!--/f:advanced-->
