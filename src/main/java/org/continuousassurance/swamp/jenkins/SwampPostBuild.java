@@ -91,9 +91,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 
 	
 	static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
-		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion",*/"CSS",/*"D","Datalog","Erlang",
-		"Forth","Fortran","Haskell",*/"HTML","Java","JavaScript",/*"LISP","Lua","ML",
-		"OCaml","Objective-C",*/"PHP",/*"Pascal",*/"Perl",/*"Prolog",*/"Python","Python-2","Python-3",
+		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion","CSS","D","Datalog","Erlang",
+		"Forth","Fortran","Haskell","HTML",*/"Java",/*"JavaScript","LISP","Lua","ML",
+		"OCaml","Objective-C","PHP","Pascal","Perl","Prolog","Python",*/"Python-2","Python-3",
 		/*"Rexx",*/"Ruby",/*"sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"*/};
 		
 	static final String[] VALID_BUILD_SYSTEMS = {"android+ant","android+ant+ivy","android+gradle","android+maven",
@@ -150,6 +150,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	private final String buildOptions;
 	private final String configCommand;
 	private final String configOptions;
+	private final String configDirectory;
 	private final String cleanCommand;
 	private final String outputDir;
 	//private final boolean sendEmail;
@@ -163,7 +164,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configCommand, String configOptions, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
+    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configCommand, String configOptions, String configDirectory, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
         this.username = getDescriptor().getUsername();
         this.password = getDescriptor().getPassword();
@@ -182,6 +183,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         this.buildOptions = buildOptions;
         this.configCommand = configCommand;
         this.configOptions = configOptions;
+        this.configDirectory = configDirectory;
     	//this.sendEmail = sendEmail;
     	//this.emailAddr = emailAddr;
     	this.packageVersion = packageVersion;
@@ -260,29 +262,22 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		//String jenkinsVersion = Jenkins.VERSION;
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
     	
-    	//Login to the SWAMP
-        /*SwampApiWrapper api;
-    	try {
-    		api = DescriptorImpl.login(username, password, hostUrl);
-			//api = new SwampApiWrapper(HostType.DEVELOPMENT);
-    		//api.login(username, password);
-		} catch (Exception e) {
-			logger.log("[ERROR] Error logging in: " + e.getMessage() + ". Check your credentials in the global configuration.");
-			//build.setResult(Result.FAILURE);
-			return emptyResult;
-		}*/
+    	//Login to the SWAMP if needed
+        if (api == null){
+        	logger.log("Logging in...");
+        	try {
+				api = DescriptorImpl.login(uploadVersion, password, hostUrl);
+			} catch (Exception e) {
+				logger.log("[ERROR] Login failed during build: " + e.getMessage());
+		    	return emptyResult;
+			}
+        }
     	
     	//Get project, tool, and platform uuids given the names
     	try {
 			getUUIDsFromNames(api,logger);
 		} catch (Exception e) {
-	    	try {
-	    		api = DescriptorImpl.login(uploadVersion, password, hostUrl);
-				getUUIDsFromNames(api,logger);
-			} catch (Exception e2) {
-				//build.setResult(Result.FAILURE);
-				return emptyResult;
-			}
+	    	return emptyResult;
 		}
     	
     	//Duplicate the workspace for cleaning
@@ -507,7 +502,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		if (getDescriptor().getVerbose()){
 			logger.log("Logging out");
 		}
-		//api.logout();
+		api.logout();
+		api = null;
 		
 		logger.log("Collecting SWAMP analysis files...");
 
@@ -722,6 +718,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		if (!configOptions.equals("")){
 			writer.println("config-opt=" + configOptions);
 		}
+		if (!configDirectory.equals("")){
+			writer.println("config-dir=" + configDirectory);
+		}
 		writer.close();
 		if (getDescriptor().getVerbose()){
 			logger.log("Config file written at " + configPath.getRemote());
@@ -840,6 +839,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
     
     public String getConfigOptions() {
     	return configOptions;
+    }
+    
+    public String getConfigDirectory() {
+    	return configDirectory;
     }
     
     public String getOutputDir() {

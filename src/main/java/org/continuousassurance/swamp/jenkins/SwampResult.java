@@ -43,7 +43,7 @@ public class SwampResult extends BuildResult {
     private static final int LESS_ONE_WEEK = 6;
 
     private int newThisWeek;
-    private int notInCloud;
+    //private int notInCloud;
     private int numberOfComments;
 
     /**
@@ -107,15 +107,15 @@ public class SwampResult extends BuildResult {
         for (FileAnnotation annotation : getAnnotations()) {
             if (annotation instanceof Bug) {
                 Bug bug = (Bug) annotation;
-                if (bug.isInCloud()) {
-                    if (bug.isShouldBeInCloud() && bug.getAgeInDays() <= LESS_ONE_WEEK) {
+                /*if (bug.isInCloud()) {
+                    if (bug.isShouldBeInCloud() && bug.getAgeInDays() <= LESS_ONE_WEEK) {*/
                         newThisWeek++;
-                    }
+                    //}
                     numberOfComments += bug.getReviewCount();
-                }
+               /* }
                 else if (bug.isShouldBeInCloud()) {
                     notInCloud++;
-                }
+                }*/
             }
         }
     }
@@ -159,13 +159,13 @@ public class SwampResult extends BuildResult {
      * @return the number of bugs which are not stored in the FindBugs Cloud
      */
     
-    public int getNotInCloud() {
+    /*public int getNotInCloud() {
         return notInCloud;
-    }
+    }*/
 
     @Override
     protected String getSerializationFileName() {
-        return "findbugs-warnings.xml";//TODO replace findbugs with SWAMP
+        return "swamp-warnings.xml";
     }
 
     @Override

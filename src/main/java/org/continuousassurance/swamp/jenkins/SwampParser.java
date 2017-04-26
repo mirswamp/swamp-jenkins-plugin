@@ -185,7 +185,7 @@ public class SwampParser implements AnnotationParser {
 			}
 			Bug bug = new Bug(bug_priority,					
 					bug_inst.getBugMessage(), 
-					bug_inst.getBugGroup(), 
+					bug_inst.getBugCode(), 
 					category,
 					r.getToolName(),
 					bug_start_line, 
@@ -200,7 +200,7 @@ public class SwampParser implements AnnotationParser {
 			
 			//System.out.println(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));
 			//bug.setFileName(getProjectDir().toString() + '/' + source_file.substring(source_file.indexOf('/') + 1));
-			bug.setFileName(getProjectDir().toString() + '/' + source_file);
+			bug.setFileName(getProjectDir().toString() + '/' + source_file);//TODO - update toString function
 			bug.setInstanceHash(String.valueOf(r.getToolName() + bug_inst.getBugId()));
 			try {
 				bug.setRank(Integer.parseInt(bug_inst.getBugRank()));

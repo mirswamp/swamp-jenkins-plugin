@@ -83,6 +83,9 @@ limitations under the License.
     <f:entry title="Configuration Options" field="configOptions">
      <f:textbox />
     </f:entry>
+    <f:entry title="Configuration Directory" field="configDirectory">
+     <f:textbox />
+    </f:entry>
     <!--<f:entry title="Clean Command" field="cleanCommand">
      <f:textbox />
     </f:entry>-->

@@ -64,7 +64,6 @@ public class SwampProjectAction extends AbstractProjectAction<ResultAction<Swamp
     protected List<BuildResultGraph> getAvailableGraphs() {
         List<BuildResultGraph> list = Lists.newArrayList();
         list.addAll(super.getAvailableGraphs());
-        list.add(new SwampEvaluationsGraph());
         return list;
     }
 }

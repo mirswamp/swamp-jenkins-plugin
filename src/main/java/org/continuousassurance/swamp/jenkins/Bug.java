@@ -45,7 +45,6 @@ import org.continuousassurance.swamp.Messages;
 @SuppressWarnings("PMD.CyclomaticComplexity")
 public class Bug extends AbstractAnnotation {
     /** Origin of the annotation. */
-    //public static final String ORIGIN = "findbugs";
     public static String ORIGIN;
 
     private static final long serialVersionUID = 5171661552905752370L;
@@ -61,8 +60,8 @@ public class Bug extends AbstractAnnotation {
     private long firstSeen;
     private int reviewCount;
     private boolean notAProblem;
-    private boolean inCloud;
-    private boolean shouldBeInCloud;
+    //private boolean inCloud;
+    //private boolean shouldBeInCloud;
     private String detailsUrl;
 
     /** Bug rank that is a replacement for the priority. @since 4.25. */
@@ -171,7 +170,6 @@ public class Bug extends AbstractAnnotation {
         return rank;
     }
 
-    // CHECKSTYLE:OFF Properties of FindBugs cloud
     @SuppressWarnings("javadoc")
     public long getFirstSeen() {
         return firstSeen;
@@ -181,7 +179,7 @@ public class Bug extends AbstractAnnotation {
         this.firstSeen = firstSeen;
     }
 
-    @SuppressWarnings("javadoc")
+    /*@SuppressWarnings("javadoc")
     public void setInCloud(final boolean inCloud) {
         this.inCloud = inCloud;
     }
@@ -189,7 +187,7 @@ public class Bug extends AbstractAnnotation {
     @SuppressWarnings("javadoc")
     public boolean isInCloud() {
         return inCloud;
-    }
+    }*/
 
     @SuppressWarnings("javadoc")
     public int getAgeInDays() {
@@ -218,7 +216,7 @@ public class Bug extends AbstractAnnotation {
         this.notAProblem = notAProblem;
     }
 
-    @SuppressWarnings("javadoc")
+    /*@SuppressWarnings("javadoc")
     public void setShouldBeInCloud(final boolean shouldBeInCloud) {
         this.shouldBeInCloud = shouldBeInCloud;
     }
@@ -226,7 +224,7 @@ public class Bug extends AbstractAnnotation {
     @SuppressWarnings("javadoc")
     public boolean isShouldBeInCloud() {
         return shouldBeInCloud;
-    }
+    }*/
 
     @SuppressWarnings("javadoc")
     public void setDetailsUrlTemplate(@CheckForNull final String detailsUrl) {
@@ -260,72 +258,7 @@ public class Bug extends AbstractAnnotation {
 
     @Override
     public String getMessage() {
-        return super.getMessage() + getCloudInformation();
-    }
-
-    private String getCloudInformation() {
-        if (!inCloud && detailsUrl == null) {
-            return StringUtils.EMPTY;
-        }
-
-        StringBuilder cloudMessage = new StringBuilder();
-
-        appendFirstSeenMessage(cloudMessage);
-
-        int id = RANDOM.nextInt();
-        String onclick = "";
-        if (detailsUrl != null) {
-            onclick = "o=document.getElementById('fb-comments-" + id + "'); "
-                    + "o.src='" + String.format(detailsUrl, instanceHash) + "'; "
-                    + "o.style.display='block';"
-                    + "document.getElementById('fb-arrow-" + id + "').src='/plugin/findbugs/icons/arrow-down.gif';"
-                    + "return false";
-            cloudMessage.append("<a href='' onclick=\"").append(onclick).append("\">");
-        }
-        cloudMessage.append(getReviewerMessage());
-        if (detailsUrl != null) {
-            cloudMessage.append("</a>");
-
-            return String.format("<br/><br/><div onclick=\"%s\">"
-                    + "<a href='' onclick=\"%s\"><img src='%s' id='fb-arrow-%s'></a>"
-                    + "<img src='%s' title=\"%s\"/>"
-                    + "%s<br/>"
-                    + "<iframe id='fb-comments-%s' style='display:none;width:400px;height:150px;border=1px solid #BBB'></iframe>"
-                    + "</div>",
-                    onclick, onclick, getImage("arrow-right.gif"), id, getImage("fb-cloud-icon-small.png"),
-                    Messages.FindBugs_Bug_cloudInfo_title(), cloudMessage.toString(), id);
-        }
-        return cloudMessage.toString();
-    }
-
-    private void appendFirstSeenMessage(final StringBuilder cloudMessage) {
-        if (ageInDays == 1) {
-            cloudMessage.append(Messages.FindBugs_Bug_cloudInfo_seenAt_singular());
-        }
-        else if (ageInDays > 1) {
-            cloudMessage.append(Messages.FindBugs_Bug_cloudInfo_seenAt_plural(ageInDays));
-            if (firstSeen > 0) {
-                DateFormat format = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT);
-                cloudMessage.append(' ');
-                cloudMessage.append(Messages.FindBugs_Bug_cloudInfo_firstSeen(format.format(new Date(firstSeen))));
-            }
-        }
-        if (cloudMessage.length() > 0) {
-            cloudMessage.append(" - ");
-        }
-    }
-
-    private String getReviewerMessage() {
-        String prefix = ", ";
-        if (reviewCount == 0) {
-            return StringUtils.EMPTY;
-        }
-        else if (reviewCount == 1) {
-            return prefix + Messages.FindBugs_Bug_cloudInfo_reviewer_singular();
-        }
-        else {
-            return prefix + Messages.FindBugs_Bug_cloudInfo_reviewer_plural(reviewCount);
-        }
+        return super.getMessage();
     }
 
     private String getImage(final String image) {
@@ -338,13 +271,13 @@ public class Bug extends AbstractAnnotation {
             rootUrl = hudson.getRootUrl();
         }
 
-        return rootUrl + "/plugin/findbugs/icons/" + image;
+        return rootUrl + "/plugin/swamp/icons/" + image;
     }
 
     /**
      * Sets the unique hash code of this bug.
      *
-     * @param instanceHash the instance hash as generated by the FindBugs library
+     * @param instanceHash the instance hash as generated by the SWAMP Hash
      */
     public void setInstanceHash(final String instanceHash) {
         this.instanceHash = HexishString.of(instanceHash);

@@ -163,7 +163,6 @@ public final class DescriptorImpl extends PluginDescriptor{
     	}
         return items;
     }
-    
     /**
      * Guesses the language of the package
      */
