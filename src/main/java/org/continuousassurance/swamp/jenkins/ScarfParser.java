@@ -127,4 +127,9 @@ public class ScarfParser implements ScarfInterface {
 	public List<BugInstance> getAllBugInstances() {
 		return bugs;
 	}
+
+	public void finalCallback() {
+		System.out.println("Final callback");
+	}
+
 }
