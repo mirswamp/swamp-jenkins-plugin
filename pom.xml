@@ -12,13 +12,13 @@
 
   <parent>
     <artifactId>plugin</artifactId>
-    <version>2.3</version>
+    <version>2.5</version>
     <relativePath />
     <groupId>org.jenkins-ci.plugins</groupId>
   </parent>
   <groupId>org.continuousassurance.swamp.jenkins</groupId>
   <artifactId>swamp</artifactId>
-  <version>0.7.12-SNAPSHOT</version>
+  <version>0.7.9-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <properties>
