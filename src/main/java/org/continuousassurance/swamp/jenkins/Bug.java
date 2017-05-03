@@ -44,9 +44,7 @@ import org.continuousassurance.swamp.Messages;
  */
 @SuppressWarnings("PMD.CyclomaticComplexity")
 public class Bug extends AbstractAnnotation {
-    /** Origin of the annotation. */
-    public static String ORIGIN;
-
+    
     private static final long serialVersionUID = 5171661552905752370L;
     private static final Random RANDOM = new Random();
 
@@ -90,7 +88,6 @@ public class Bug extends AbstractAnnotation {
     	super(priority, message, start, end, category, type);
     	//this.setDetailsUrlTemplate("https://www.google.com/");
     	//System.out.println("Details: " + this.detailsUrl);
-    	ORIGIN = origin;
         setOrigin(origin);
     }
     

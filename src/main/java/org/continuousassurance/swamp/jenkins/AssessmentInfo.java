@@ -19,6 +19,7 @@
 
 package org.continuousassurance.swamp.jenkins;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 
@@ -37,7 +38,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 
-public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
+public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> implements Serializable{
 
 	private final String toolUUID;
 	private final String platformUUID;
@@ -59,12 +60,18 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> {
 	}
 	
 	public String getToolName(SwampApiWrapper api, String projectUUID) throws Exception{
-		String returnName = "";
+		StringBuffer returnName = new StringBuffer();
+		for (String nextUUID : toolUUID.split(",")){
+			returnName.append(", " + api.getTool(nextUUID,projectUUID).getName());
+		}
+		returnName = returnName.delete(0, 2);
+		return returnName.toString();
+		/*String returnName = "";
 		for (String nextUUID : toolUUID.split(",")){
 			returnName += ", " + api.getTool(nextUUID,projectUUID).getName();
 		}
 		returnName = returnName.substring(2);
-		return returnName;
+		return returnName;*/
 	}
 	
 	public String getToolUUID(){

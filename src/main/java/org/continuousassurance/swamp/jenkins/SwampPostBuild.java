@@ -100,8 +100,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		"ant","ant+ivy","cmake+make","configure+make","gradle","java-bytecode","make","maven",
 		"no-build","none","other","python-distutils"};
 	
-	static HashMap<String,String> defaultBuildFiles;
-	
 	static HashMap<String,String> setupDefaultBuildFiles () {
 		HashMap<String,String> defaults = new HashMap<String,String>();
 		defaults.put("ant", "build.xml");
@@ -113,8 +111,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		defaults.put("bundler", "Gemfile,gemfile");
 		return defaults;
 	}
-	
-	static HashMap<String,String[]> buildSystemsPerLanguage;
 	
 	private static final String[] C_BUILD_SYSTEMS = {"cmake+make","configure+make","make","no-build","other"};
 	private static final String[] JAVA_BUILD_SYSTEMS = {"ant","ant+ivy","gradle","maven","no-build","android+ant","android+gradle","android+maven"};
@@ -202,7 +198,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
     public BuildResult perform(final Run<?, ?> build, final FilePath workspace, final PluginLogger logger) throws IOException, InterruptedException {
     	SwampResult emptyResult = null;
     	//If the build failed, exit
-    	if (!getDescriptor().getRunOnFail() && build.getResult().isWorseOrEqualTo(Result.FAILURE)){
+    	Result buildResult = build.getResult(); 
+    	if (buildResult == null || (!getDescriptor().getRunOnFail() && buildResult.isWorseOrEqualTo(Result.FAILURE))){
     		if (getDescriptor().getVerbose()){
     			logger.log("[ERROR] Build failed: no point in sending to the SWAMP");
     		}
@@ -251,12 +248,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
 			}
 		}
-		if (uploadVersion.contains("/")){
-			uploadVersion.replaceAll("/", "-");
-		}
-		if (uploadVersion.contains("\\")){
-			uploadVersion.replaceAll("\\", "-");
-		}
+		uploadVersion = uploadVersion.replaceAll("/", "-");
+		//uploadVersion = uploadVersion.replaceAll("\\", "-");
     	
     	archiveName = packageName + "-" + uploadVersion + ".zip";
 		//String jenkinsVersion = Jenkins.VERSION;
@@ -266,7 +259,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         if (api == null){
         	logger.log("Logging in...");
         	try {
-				api = DescriptorImpl.login(uploadVersion, password, hostUrl);
+				setApi(DescriptorImpl.login(uploadVersion, password, hostUrl));
 			} catch (Exception e) {
 				logger.log("[ERROR] Login failed during build: " + e.getMessage());
 		    	return emptyResult;
@@ -366,16 +359,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		} catch (HTTPException e){
-			try {
-	    		api = DescriptorImpl.login(uploadVersion, password, hostUrl);
-				packageUUID = api.uploadPackage(configPath.getRemote(),
-						archivePath.getRemote(), projectUUID, true);
-			} catch (Exception e1) {
-				logger.log("[ERROR] Could not upload Package: "
-						+ e1.getMessage());
-				//build.setResult(Result.FAILURE);
-				return emptyResult;
-			}
+			logger.log("[ERROR] Could not upload Package: "
+						+ e.getMessage());
+			//build.setResult(Result.FAILURE);
+			return emptyResult;
 		}
 		if (getDescriptor().getVerbose()){
 			logger.log("Package Uploaded. UUID id " + packageUUID);
@@ -424,7 +411,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			//TODO Email results when complete
 		}*/
 		
-		ArrayList<String> assessmentNames = new ArrayList<String>();
+		//ArrayList<String> assessmentNames = new ArrayList<String>();
 		//if (!getDescriptor().getBackgroundAssess()){
 		FilePath outputPath = new FilePath(workspace, outputDir);
 		try {
@@ -537,7 +524,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     private boolean checkBuild (FilePath workspace, PluginLogger logger){
     	FilePath buildFile;
     	if (this.buildFile.equals("")){
-        	defaultBuildFiles = setupDefaultBuildFiles();
+    		HashMap<String,String> defaultBuildFiles = setupDefaultBuildFiles();
     		if (!defaultBuildFiles.containsKey(buildSystem)){
     			logger.log("[Warning] could not verify build file for " + buildSystem);
     			return true;
@@ -858,8 +845,12 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	}*/
     
     public String getIconPath() {
-    	PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin("SwampPreBuild");
-    	return Jenkins.getInstance().getRootUrl() + "plugin/"+ wrapper.getShortName()+"/swamp-logo-large.png";
+    	Jenkins instance = Jenkins.getInstance(); 
+    	if (instance != null){
+	    	PluginWrapper wrapper = instance.getPluginManager().getPlugin("SwampPreBuild");
+	    	return instance.getRootUrl() + "plugin/"+ wrapper.getShortName()+"/swamp-logo-large.png";
+    	}
+    	return null;
     }
     
 	@Override

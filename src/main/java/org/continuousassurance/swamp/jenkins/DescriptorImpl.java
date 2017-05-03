@@ -21,6 +21,7 @@ package org.continuousassurance.swamp.jenkins;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import jenkins.model.Jenkins;
@@ -197,10 +198,10 @@ public final class DescriptorImpl extends PluginDescriptor{
      */
     public ListBoxModel doFillBuildSystemItems(@QueryParameter String packageLanguage){
         ListBoxModel items = new ListBoxModel();
-        SwampPostBuild.buildSystemsPerLanguage = SwampPostBuild.setupBuildSystemsPerLanguage();
-        if (SwampPostBuild.buildSystemsPerLanguage.containsKey(packageLanguage)){
-        	for (int i = 0; i < SwampPostBuild.buildSystemsPerLanguage.get(packageLanguage).length; i++){
-        		items.add(SwampPostBuild.buildSystemsPerLanguage.get(packageLanguage)[i]);
+        HashMap<String,String[]> buildSystemsPerLanguage = SwampPostBuild.setupBuildSystemsPerLanguage();
+        if (buildSystemsPerLanguage.containsKey(packageLanguage)){
+        	for (int i = 0; i < buildSystemsPerLanguage.get(packageLanguage).length; i++){
+        		items.add(buildSystemsPerLanguage.get(packageLanguage)[i]);
         	}
         }else{
         	items.add("","null");
@@ -217,8 +218,8 @@ public final class DescriptorImpl extends PluginDescriptor{
     	if (value.equals("null")){
     		return FormValidation.error("Language not supported: Please select a valid language");
     	}
-    	SwampPostBuild.defaultBuildFiles = SwampPostBuild.setupDefaultBuildFiles();
-    	if (!SwampPostBuild.defaultBuildFiles.containsKey(value)){
+    	HashMap<String,String> defaultBuildFiles = SwampPostBuild.setupDefaultBuildFiles();
+    	if (!defaultBuildFiles.containsKey(value)){
     		return FormValidation.warning("Under advanced settings, please enter the command used to clean your project.");
     	}
     	return FormValidation.ok();
@@ -290,14 +291,18 @@ public final class DescriptorImpl extends PluginDescriptor{
      */
     public String defaultPackageName(){
     	//TODO detect default package name
-    	String jobName = Jenkins.getInstance().getDescriptor().getDescriptorFullUrl();
-    	jobName = jobName.substring(jobName.indexOf("job/") + 4);
-    	try {
-			jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-    	return jobName;
+    	Jenkins instance = Jenkins.getInstance(); 
+    	if (instance != null){
+	    	String jobName = instance.getDescriptor().getDescriptorFullUrl();
+	    	jobName = jobName.substring(jobName.indexOf("job/") + 4);
+	    	try {
+				jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+	    	return jobName;
+    	}
+    	return null;
     }
 
     /**
@@ -347,8 +352,8 @@ public final class DescriptorImpl extends PluginDescriptor{
     }
     
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
-    	SwampApiWrapper api = new SwampApiWrapper(hostUrl);
-    	api.login(username, password);
+    	SwampApiWrapper api = new SwampApiWrapper();
+    	api.login(username, password, hostUrl);
     	return api;
     }
 
