@@ -5,23 +5,23 @@ Jared Sweetland, Vamshi Basupalli, James A. Kupsch
 :toc:
 :numbered:
 
-== Intro:
+== Introduction:
 This plugin allows you to submit SWAMP assessments during Jenkins builds.
 The SWAMP assessment will use open source static analysis tools to test your source code for vulnerabilities and flaws.
 For more information on the SWAMP, visit https://continuousassurance.org
 For more information on Jenkins, visit https://jenkins.io/
 
 == Prerequisites:
-The usage of this plugin requires that you already have the following:
+The usage of this plugin requires the following:
 
-- A functional instance of Jenkins.
+- A functional instance of Jenkins. +
   If you do not have a Jenkins installation, go to https://jenkins.io to get
-  Jenkins.
+  Jenkins. +
   A good tutorial for how to set it up is at
   http://www.tutorialspoint.com/jenkins/.
-- A valid SWAMP account.
-  If you do not have an account, go to https://continuousassurance.org to
-  register.
+- A valid SWAMP account. +
+  We suggest that you create an Application Password for use with Jenkins. +
+  If you do not have an account, go to https://continuousassurance.org to register.
 
 == Install the Plugin
 To use the SWAMP Assessment Plugin it must first be installed using either the
@@ -45,7 +45,7 @@ NOTE: Not available yet.
 The SWAMP Jenkins plugin can be installed directly from
 SWAMP.hpi file using the following steps:
 
-. Aquire the SWAMP.hpi on your computer
+. Aquire the SWAMP.hpi on your computer from https://github.com/mirswamp/swamp-jenkins-plugin
 . Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Manage Plugins_
 . Click the _Advanced_ tab
@@ -70,16 +70,11 @@ This configuration is modified on the following web interface:
 2+|*Credentials*
 |Swamp Username a| Your username to log into the SWAMP
 
-NOTE: Third party credential such as github are not supported by the SWMAP Jenkins Plugin
-at this time.
+NOTE: Third party credential such as github are not supported Create and use a SWAMP Application Password instead.
 |Swamp Password | Your password to log into the SWAMP
 |SWAMP URL a| URL of SWAMP web site.
-The default is the SWAMP public instance at https://swa-csaweb-pd-01.mir-swamp.org.
-
-NOTE: _At this time the URL of the SWAMP web site can not be used.  The
-URL of the backend server must be used.  See your SWAMP administrator for
-this value if you are not using the SWAMP public instance._
-
+The default is the SWAMP public instance at https://swa-csaweb-pd-01.mir-swamp.org. +
+If you are using SWAMP-in-a-Box, contact your administrator for the URL to use.
 |Test Connection Button | Use this button to test your credentials and URL
 2+|*Global Project Settings*
 |Default Project | The default project to be used for each upload
@@ -87,8 +82,8 @@ Can be modified in build settings
 2+|*Miscellaneous Options*
 |Verbose Mode | Provide extra output for status updates and error checking
 |Run even if build fails? | If checked, the package will be uploaded and assessed even if the build fails
-|Run Assessments in Background | If checked, the build will place the assessments in the background
-you will not get any feedback of success/failure, but Jenkins build will complete without waiting for SWAMP assessments
+|Run Assessments in Background | If selected, you will not be able to view the results of the assessments in Jenkins. +
+Use this option if you use a SWAMP viewer.
 |==========================
 
 == Use the SWAMP Jenkins Plugin
@@ -103,7 +98,7 @@ you will not get any feedback of success/failure, but Jenkins build will complet
 |==========================
 |Parameter | Description
 2+|*Package Settings*
-|Package Directory | If your source code for your package is located in a subdirectory, enter it here.
+|Package Directory | If the main directory of your package is located in a subdirectory, enter it here.
 |Package Name | Enter the name of your package here.  This is the name that will be used in the SWAMP UI.
 |Package Version a| Enter the version string of your package.
 Every build should have a unique version String. The following macros may be used
@@ -122,13 +117,13 @@ If you do not update the version number each build (either using any of the abov
 the _Package Directory_.  The directory is relative this the _Package Directory_
 |Build File |Leave blank if using a standard build file name for the select _Build System_
 (i.e. _build.xml_ for Ant, _pom.xml_ for Maven, _Makefile_ for Make)
-Enter a value if the build file is using a non standard name. The name is relative to the _Build Directory_.
+Enter a path to the file if the build file is using a non standard name. The path is relative to the _Build Directory_.
 |Build Target |If building your package requires a special build target, enter it here, otherwise leave blank
-|Build Command |If your package requires a non-standard build command, enter it here, otherwise leave blank and the command will be determined by the _Build System_.
+|Build Command |If your package uses a build command other than a standard type specified by the build system enter it here. Otherwise leave blank and the command will be determined by the _Build System_. (Syntax is Bash)
 |Build Options |If your package requires options to passed to the build command, enter it
 here (e.g. `--verbose --setInt 1`), otherwise leave blank.
 Add multiple options separated by spaces as usual.
-|Configuration Command |If your package requires a configuration command, enter it here. If left blank, the configuration will be called without a command.
+|Configuration Command |If your package requires a configuration command, enter it here. If left blank, the configuration will be called without a command. (Syntax is Bash)
 |Configuration Options |If your package requires configuration options, enter them here similarly to the build options.
 |Clean Command a|Enter the command to clean your build.
 Leave blank to use the `[build-system] clean`
@@ -158,52 +153,3 @@ Otherwise, the SWAMP web site can be used to view results of your assessments:
 . Click _Results_
 . Click the checkbox next to the assessment results you would like to review
 . Click _View Assessment Results_ button
-
-== Developing the Plugin
-
-If you have installed the source code, you will need a few other repositories installed to make the plugin compile properly.
-- Java-CLI (https://github.com/mirswamp/java-cli.git) (use the CLI-with-dependencies.jar file)
-- Scarf-IO (https://github.com/mirswamp/swamp-scarf-io.git)
-
-Once you have these, you can configure an eclipse project (or whatever IDE you plan to use) with the dependencies located in the .m2 directory.
-
-To create the project in Eclipse:
-- Download the github repository https://github.com/mirswamp/swamp-jenkins-plugin.git
-- Go to file -> import -> maven -> existing maven projects
-- Enter the SWAMP Plugin repository
-- Click Next and Finish
-
-To configure the project in Eclipse:
-- Run maven install on both the github repositories listed above to install them to the proper directories
-- Right click the project directory and click properties
-- Go to the Java build path tab
-- Click _Add External Jars_
-- Enter ~/.m2/repository/org/continuousassurance/swamp/java-cli/1.0-SNAPSHOT/java-cli-1.0-SNAPSHOT-jar-with-dependencies.jar
-- Click _OK_
-- Repeat with ~/.m2/repository/org/continuousassurance/scarf-io/1.0-SNAPSHOT/scarf-io-1.0-SNAPSHOT.jar
-If done correctly, (most) compiler errors should go away (there may be some extras relating to messages.java)
-
-To test any changes to the code:
-- From the Plugin directory, run `mvn clean package -DskipTests -Dmaven.test.skip=true -Denforcer.skip=true`
-- In your instance of Jenkins, go to Manage Jenkins -> Manage Plugins
-- Select the _Advanced_ Tab
-- Under *Upload Plugin* find the swamp.hpi file generated by your build command (should be the plugin directory/target/swamp.hpi)
-- Click _Upload_
-- NOTE: Every time a plugin is updated, you will need to restart Jenkins, so select the restart Jenkins checkbox and wait for a restart
-
-== Layout of the Source Code
-Different elements of the plugin are located in different locations of the plugin, so here is a general list of where to look for certian errors:
-
-=== Issues with logging in
-The login function is located within the DescriptorImpl.java class, but is called in various locations of the DescriptorImpl.java, SwampPostBuild.java, and AssessmentInfo classes
-
-=== Issues with package submission / assessment submission
-This is all done in the bulk of SwampPostBuild.java within the perform function.
-
-=== Issues with parsing data for output
-The parsing is called at the end of the perform function within SwampPostBuild.java, but most of the code executed is in the SwampParser.java class in the parse function.
-
-=== Issues with generating graphs
-These issues may be a bit harder to fix because there are a lot of nested functions to make this work properly. Start with Restults.java and work back through method trees to try to find where your issue is.
-
-If you would like to create a new graph, add it to the list of graphs returned from the bottom of SwampProjectAction.java

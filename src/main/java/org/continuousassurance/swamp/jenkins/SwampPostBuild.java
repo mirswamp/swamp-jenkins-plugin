@@ -397,9 +397,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		assessmentUUIDs = new String[assessmentsToRun.size()];
 		for (int i = 0; i < assessmentUUIDs.length;i++){
 			try {
-				if (getDescriptor().getVerbose()){
-	    			logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformName(api));
-				}
+				logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformName(api));
 				assessmentUUIDs[i] = api.runAssessment(packageUUID, assessmentsToRun.get(i).getToolUUID(), projectUUID, assessmentsToRun.get(i).getPlatformUUID());
 			} catch (Exception e) {
 				logger.log("[ERROR] Assessment failed: " + e.getMessage());
@@ -431,7 +429,6 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				//assessmentName = "swampXml.xml";
 				assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
 				assessmentName = assessmentName.replace("/", "-");
-				logger.log("Assessment added: assessment name = " + assessmentName);
 			} catch (Exception e) {
 				logger.log("[ERROR] Tool / Platform missing unexpectedly: " + e.getMessage());
 				return emptyResult;

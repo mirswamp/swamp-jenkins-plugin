@@ -115,39 +115,20 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
         		return error;
         	}
 			if (packageLanguage == null){
-				try {
-	        		ListBoxModel error = new ListBoxModel();
-	        		errorMessageTool = "ERROR: Language is set to null. Please verify your language and retry.";
-	        		System.out.println(errorMessageTool);
-					error.add("","null");
-					midAccess = false;
-	        		return error;
-				} catch (Exception e) {
-					ListBoxModel error = new ListBoxModel();
-					errorMessageTool = "ERROR: Could not load tools and language is null: " + e.getMessage();
-					System.out.println(errorMessageTool);
-					error.add("","null");
-					midAccess = false;
-	        		return error;
-				}
+				ListBoxModel error = new ListBoxModel();
+	        	errorMessageTool = "ERROR: Language is set to null. Please verify your language and retry.";
+	        	System.out.println(errorMessageTool);
+				error.add("","null");
+				midAccess = false;
+	        	return error;
         	}
         	packageLanguage = api.getPkgTypeString(packageLanguage, "", "", null);
-        	if (packageLanguage == null){
-        		try {
-	        		ListBoxModel error = new ListBoxModel();
-	        		errorMessageTool = "ERROR: Invalid language. Please verify your language and retry.";
-	        		System.out.println(errorMessageTool);
-					error.add("","null");
-					midAccess = false;
-	        		return error;
-				} catch (Exception e) {
-					ListBoxModel error = new ListBoxModel();
-					errorMessageTool = "ERROR: Could not load tools and invalid language: " + e.getMessage();
-					System.out.println(errorMessageTool);
-					error.add("","null");
-					midAccess = false;
-	        		return error;
-				}
+        	if (packageLanguage == null){ListBoxModel error = new ListBoxModel();
+	        	errorMessageTool = "ERROR: Invalid language. Please verify your language and retry.";
+	        	System.out.println(errorMessageTool);
+				error.add("","null");
+				midAccess = false;
+	        	return error;
         	}
 			ListBoxModel items = new ListBoxModel();
 			List<Tool> toolList = null;
