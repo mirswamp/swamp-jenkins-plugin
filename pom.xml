@@ -8,6 +8,11 @@
       <name>Jared Sweetland</name>
       <email>swamp-jenkins-plugin@cs.wisc.edu</email>
     </developer>
+    <developer>
+      <id>vamshikr</id>
+      <name>Vamshi Basupalli</name>
+      <email>swamp-jenkins-plugin@cs.wisc.edu</email>
+    </developer>
   </developers>
 
   <parent>
@@ -109,7 +114,7 @@
 
 
   <scm>
-    <tag>HEAD</tag>
+    <!-- <tag>releases/1.0.1</tag> -->
     <connection>scm:git:ssh://github.com/jenkinsci/swamp-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/swamp-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/swamp-plugin</url>
