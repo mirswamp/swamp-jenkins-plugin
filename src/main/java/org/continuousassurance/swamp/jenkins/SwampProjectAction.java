@@ -33,7 +33,7 @@ import org.continuousassurance.swamp.Messages;
  * Entry point to visualize the SWAMP trend graph in the project screen.
  * Drawing of the graph is delegated to the associated {@link ResultAction}.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class SwampProjectAction extends AbstractProjectAction<ResultAction<SwampResult>> {
     /**

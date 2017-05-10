@@ -38,7 +38,7 @@ import org.continuousassurance.swamp.Messages;
  * Moreover, this class renders the SWAMP result trend.
  * </p>
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class SwampResultAction extends AbstractResultAction<SwampResult> {
     /**

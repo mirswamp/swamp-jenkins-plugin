@@ -32,7 +32,7 @@ import hudson.plugins.analysis.core.ParserResult;
  * Aggregates {@link SwampResultAction}s of {@link MatrixRun}s into
  * {@link MatrixBuild}.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class SwampAnnotationsAggregator extends AnnotationsAggregator {
     /**

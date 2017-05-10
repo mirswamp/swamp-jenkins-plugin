@@ -1,0 +1,12 @@
+Jenkins Plugin TODO:
+
+High Priority:
+Fix the plugin crashing after consecutive builds - this happens because the API times out between builds if not refreshed by entering the config page
+Bring back the clean command, see post on https://groups.google.com/forum/#!topic/jenkinsci-dev/sd4scnvCYqc
+
+Medium Priority:
+Update the plugin with "All Tool" functionality specified by the CLI
+Replace Hard-coded languages, and build systems with CLI calls
+
+Low Priority:
+Make a script to build / release the plugin

@@ -40,7 +40,7 @@ import org.continuousassurance.swamp.Messages;
  * Note: this class has a natural ordering that is inconsistent with equals.
  * </p>
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 @SuppressWarnings("PMD.CyclomaticComplexity")
 public class Bug extends AbstractAnnotation {

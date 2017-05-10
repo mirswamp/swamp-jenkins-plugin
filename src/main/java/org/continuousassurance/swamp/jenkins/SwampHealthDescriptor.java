@@ -29,7 +29,7 @@ import org.continuousassurance.swamp.Messages;
 /**
  * A health descriptor for SWAMP build results.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class SwampHealthDescriptor extends AbstractHealthDescriptor {
     private static final long serialVersionUID = -3404826986876607396L;

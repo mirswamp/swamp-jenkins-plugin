@@ -47,7 +47,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * Descriptor for the class {@link SwampPostBuild}. Used as a singleton. The
  * class is marked as public so that it can be accessed from views.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 @Extension(ordinal = 100)
 public final class DescriptorImpl extends PluginDescriptor{

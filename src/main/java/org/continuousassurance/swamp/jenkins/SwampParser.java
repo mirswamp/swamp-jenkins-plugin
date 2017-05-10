@@ -56,7 +56,7 @@ import org.continuousassurance.scarf.datastructures.BugInstance;
 /**
  * A parser for the native SWAMP XML files for each tool in an assessment.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 // CHECKSTYLE:COUPLING-OFF
 public class SwampParser implements AnnotationParser {

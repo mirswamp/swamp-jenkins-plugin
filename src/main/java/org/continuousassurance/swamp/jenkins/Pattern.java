@@ -22,7 +22,7 @@ package org.continuousassurance.swamp.jenkins;
 /**
  * Bug pattern describing a bug type.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class Pattern {
     private String type;

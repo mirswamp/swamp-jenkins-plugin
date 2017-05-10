@@ -35,7 +35,7 @@ import org.continuousassurance.swamp.Messages;
  * Represents the results of the SWAMP analysis. One instance of this class is persisted for
  * each build via an XML file.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 public class SwampResult extends BuildResult {
     private static final long serialVersionUID = 2768250056765266658L;

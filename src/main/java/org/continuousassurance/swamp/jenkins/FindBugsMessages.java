@@ -21,7 +21,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Parses the FindBugs pattern descriptions and provides access to these HTML messages.
  *
- * @author Ulli Hafner
+ * Derived from Ulli Hafner's Script
  */
 // TODO: when there are more translations available we should generalize that approach into a map of maps
 public final class FindBugsMessages {

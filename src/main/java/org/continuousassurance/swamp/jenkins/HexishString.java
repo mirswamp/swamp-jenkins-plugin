@@ -47,7 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * but in this form it only occupies about 64 bytes if it's hex, and 112 when it's not. So it's more space efficient
  * either way.
  *
- * @author Kohsuke Kawaguchi
+ * Derived from Kohsuke Kawaguchi's Script
  */
 @SuppressFBWarnings("")
 @SuppressWarnings({"PMD", "all"})

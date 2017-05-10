@@ -5,6 +5,31 @@ Jared Sweetland, Vamshi Basupalli, James A. Kupsch
 :toc:
 :numbered:
 
+== Setting up an instance of Jenkins
+
+On the first launch of Jenkins, you will need to make an admin account.
+
+- Get a war file from https://jenkins.io/
+- Run `java -jar jenkins.war` to initialize Jenkins
+- Copy the administrative password given to you in the terminal
+- Go to localhost:8080 in a browser
+- Enter in the administrative password and create an account
+- Select _Install suggested plugins_
+
+Next, you will need to change the global configurations of the plugin.
+
+- Go to _Manage Jenkins_ -> _Configure System_
+- Scroll down to the SWAMP Section
+- Enter your SWAMP login information, and any other settings you wish to use
+
+You will then need to create and configure a job for testing.
+
+- From the Dashboard (main page), go to _new item_
+- Name your project and select _freestyle project_
+- Configure your git / svn / custom workspace to obtain your test job
+- Under Post-Build Actions, click _Add Post-Build Action_ -> _SWAMP Assessment_
+- Configure the plugin accordingly (for more info, see the README)
+
 == Developing the Plugin
 
 If you have installed the source code, you will need a few other repositories installed to make the plugin compile properly.
@@ -40,11 +65,109 @@ To test any changes to the code:
 
 Unfortunately, the Eclipse debugger does not work well with the plugin. Instead, you can use print statements where applicable to debug variables.
 
-Using `System.out.print("your text");` will print to the console, where you ran java -jar for Jenkins. +
+Using `System.out.print("your text");` will print to the console running java -jar for Jenkins. +
 Using `logger.log("your text");` where applicable will print to the logger within the Jenkins build.
+
+== Making a Release
+To make a release, there are a few steps you must do:
+
+=== Settings.xml File
+Create (if not already there) a settings.xml file in your .m2 repository. +
+Alternatively, the file is available in /p/swamp/doc
+Place the following in the file:
+-----------------------
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <pluginGroups>
+    <pluginGroup>org.jenkins-ci.tools</pluginGroup>
+  </pluginGroups>
+ 
+  <profiles>
+    <!-- Give access to Jenkins plugins -->
+    <profile>
+      <id>jenkins</id>
+      <activation>
+        <activeByDefault>true</activeByDefault> <!-- change this to false, if you don't like to have it on per default -->
+      </activation>
+      <repositories>
+        <repository>
+          <id>repo.jenkins-ci.org</id>
+          <url>https://repo.jenkins-ci.org/public/</url>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>repo.jenkins-ci.org</id>
+          <url>https://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+  <mirrors>
+    <mirror>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+      <mirrorOf>m.g.o-public</mirrorOf>
+    </mirror>
+  </mirrors>
+
+  <servers>
+    <server>
+      <id>maven.jenkins-ci.org</id> <!-- For parent 1.397 or newer; before this use id java.net-m2-repository -->
+      <username>FILL THIS IN</username>
+      <password>FILL THIS IN</password>
+    </server>
+  </servers>
+
+</settings>
+
+-----------------------
+Replace the username and password sections at the bottom of the file with your jenkins wiki/jera account information.
+
+=== SSH Keys
+You will have to start an ssh-agent and import your private key so the release plugin can access the GitHub repository.
+
+=== Ensure Dependencies
+Ensure that within the pom.xml file of the plugin there are no dependencies that end in -SNAPSHOT (i.e. 1.0-SNAPSHOT)
+
+=== Run the Release Command
+Run the following commands:
+-------------------
+mvn release:clean
+mvn release:prepare release:perform
+-------------------
+
+You will be prompted for the version number you are uploading, the version tag to be applied, and the version number of the next upload. +
+Fill these in accordingly.
+
+The upload will take roughly 3 hours to reach the plugin market on Jenkins. +
+*Remember to update the Wiki with the release notes!*
+
+== Updating the Wiki page
+
+- Go to https://wiki.jenkins-ci.org/display/JENKINS/SWAMP+Plugin
+- Click edit page
+- Enter your login credentials if needed
 
 == Layout of the Source Code
 Different elements of the plugin are located in different locations of the plugin, so here is a general list of where to look for certian errors:
+
+=== Issues with configuration pages
+There is a config.jelly and a global.jelly file that determin the per-job and global configuration pages respectively.
+
+To add a new configuration, here are the steps: 
+
+In the config.jelly or global.jelly file (depending on where you want this option to be located), copy the formatting of the other configurations. +
+Field corresponds to the variable it will set in java. +
+Next, in the SwampPostBuild.java file, add your variable to the private final list of variables towards the top. +
+Then add a getter method where the other config variables' getters are. +
+Lastly, add the variable as a parameter for the constructor, and set the variable in the constructor.
+
+If your variable does not save when exiting the configuration page, you did not properly set your getter method. +
+If it does not appear in the configuration, you did not preperly declare it in the jelly file.
 
 === Issues with logging in
 The login function is located within the DescriptorImpl.java class, but is called in various locations of the DescriptorImpl.java, SwampPostBuild.java, and AssessmentInfo classes
