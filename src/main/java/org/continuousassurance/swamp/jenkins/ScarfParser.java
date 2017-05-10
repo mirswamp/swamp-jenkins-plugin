@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.continuousassurance.scarf.ScarfInterface;
-import org.continuousassurance.scarf.ScarfXmlReader;
+import org.continuousassurance.scarf.parser.ScarfInterface;
+import org.continuousassurance.scarf.parser.ScarfXmlReader;
 import org.continuousassurance.scarf.datastructures.*;
 
 public class ScarfParser implements ScarfInterface {
