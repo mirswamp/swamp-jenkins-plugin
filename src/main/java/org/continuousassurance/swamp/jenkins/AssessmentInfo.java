@@ -15,7 +15,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
   See the License for the specific language governing permissions and
   limitations under the License.
-  */
+ */
 
 package org.continuousassurance.swamp.jenkins;
 
@@ -44,21 +44,21 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 	private final String platformUUID;
 	private static SwampApiWrapper api = null;
 	private static boolean midAccess = false; 
-	
+
 	public static void setApi(SwampApiWrapper newApi){
 		api = newApi;
 	}
-	
+
 	@DataBoundConstructor
 	public AssessmentInfo(String toolUUID, String platformUUID){
 		this.toolUUID = toolUUID;
 		this.platformUUID = platformUUID;
 	}
-	
+
 	public String getAssessmentInfo(SwampApiWrapper api, String projectUUID) throws Exception{
 		return "Assessment " + getToolName(api,projectUUID) + " on " + getPlatformName(api);
 	}
-	
+
 	public String getToolName(SwampApiWrapper api, String projectUUID) throws Exception{
 		StringBuffer returnName = new StringBuffer();
 		for (String nextUUID : toolUUID.split(",")){
@@ -73,72 +73,72 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 		returnName = returnName.substring(2);
 		return returnName;*/
 	}
-	
+
 	public String getToolUUID(){
 		return toolUUID;
 	}
-	
+
 	public String getPlatformName(SwampApiWrapper api){
 		return api.getPlatform(platformUUID).getName();
 	}
-	
+
 	public String getPlatformUUID(){
 		return platformUUID;
 	}
-	
+
 	@Override
-    public DescriptorImpl getDescriptor() {
-        // see Descriptor javadoc for more about what a descriptor is.
-        return (DescriptorImpl)super.getDescriptor();
-    }
-	
+	public DescriptorImpl getDescriptor() {
+		// see Descriptor javadoc for more about what a descriptor is.
+		return (DescriptorImpl)super.getDescriptor();
+	}
+
 	@Extension 
-    public static class DescriptorImpl extends Descriptor<AssessmentInfo>{ 
-		
+	public static class DescriptorImpl extends Descriptor<AssessmentInfo>{ 
+
 		private String errorMessageTool;
 		private String errorMessagePlatform;
 
-        /** 
-         * Fills the Tool list based on the language provided
-         * @param packageLanguage the language of the package
-         * @param projectUUID the name of the project
-         * @return a ListBoxModel containing the tools as strings
-         */
-        public ListBoxModel doFillToolUUIDItems(@QueryParameter @RelativePath("..") String packageLanguage,
-        		@QueryParameter @RelativePath("..") String projectUUID) {
-        	if (projectUUID == null){
-        		ListBoxModel error = new ListBoxModel();
+		/** 
+		 * Fills the Tool list based on the language provided
+		 * @param packageLanguage the language of the package
+		 * @param projectUUID the name of the project
+		 * @return a ListBoxModel containing the tools as strings
+		 */
+		public ListBoxModel doFillToolUUIDItems(@QueryParameter @RelativePath("..") String packageLanguage,
+				@QueryParameter @RelativePath("..") String projectUUID) {
+			if (projectUUID == null){
+				ListBoxModel error = new ListBoxModel();
 				errorMessageTool = "ERROR: Could not get project UUID after 100 retries.";
 				System.out.println(errorMessageTool);
 				error.add("","null");
 				midAccess = false;
-        		return error;
-        	}
+				return error;
+			}
 			if (packageLanguage == null){
 				ListBoxModel error = new ListBoxModel();
-	        	errorMessageTool = "ERROR: Language is set to null. Please verify your language and retry.";
-	        	System.out.println(errorMessageTool);
+				errorMessageTool = "ERROR: Language is set to null. Please verify your language and retry.";
+				System.out.println(errorMessageTool);
 				error.add("","null");
 				midAccess = false;
-	        	return error;
-        	}
-        	packageLanguage = api.getPkgTypeString(packageLanguage, "", "", null);
-        	if (packageLanguage == null){ListBoxModel error = new ListBoxModel();
-	        	errorMessageTool = "ERROR: Invalid language. Please verify your language and retry.";
-	        	System.out.println(errorMessageTool);
-				error.add("","null");
-				midAccess = false;
-	        	return error;
-        	}
+				return error;
+			}
+			packageLanguage = api.getPkgTypeString(packageLanguage, "", "", null);
+			if (packageLanguage == null){ListBoxModel error = new ListBoxModel();
+			errorMessageTool = "ERROR: Invalid language. Please verify your language and retry.";
+			System.out.println(errorMessageTool);
+			error.add("","null");
+			midAccess = false;
+			return error;
+			}
 			ListBoxModel items = new ListBoxModel();
 			List<Tool> toolList = null;
 			for (int i = 0; i < 100 && (toolList == null || toolList.isEmpty()); i++){
-	            try {
-	            	toolList = api.getTools(packageLanguage, projectUUID);
-	        		Thread.sleep(50);
-	            } catch (InvalidIdentifierException | InterruptedException e){
-	            	
-	            }
+				try {
+					toolList = api.getTools(packageLanguage, projectUUID);
+					Thread.sleep(50);
+				} catch (InvalidIdentifierException | InterruptedException e){
+
+				}
 			}
 			if (toolList == null || toolList.isEmpty()){
 				ListBoxModel error = new ListBoxModel();
@@ -146,28 +146,28 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 				System.out.println(errorMessageTool);
 				error.add("","null");
 				midAccess = false;
-        		return error;
+				return error;
 			}
-            try {
-            	Iterator<Tool> allTools = toolList.iterator();
-    			items.add("","null");
-    			Option all = new Option("all","");
-            	while (allTools.hasNext()){
-        			Tool nextTool = allTools.next();
-        			if (nextTool.getSupportedPkgTypes().contains(packageLanguage)){
-	        			items.add(nextTool.getName(),nextTool.getUUIDString());
-	        			all.value = all.value + "," + nextTool.getUUIDString();
-        			}
-        		}
-            	all.value = all.value.substring(1);
-            	items.add(1, all);
+			try {
+				Iterator<Tool> allTools = toolList.iterator();
+				items.add("","null");
+				Option all = new Option("all","");
+				while (allTools.hasNext()){
+					Tool nextTool = allTools.next();
+					if (nextTool.getSupportedPkgTypes().contains(packageLanguage)){
+						items.add(nextTool.getName(),nextTool.getUUIDString());
+						all.value = all.value + "," + nextTool.getUUIDString();
+					}
+				}
+				all.value = all.value.substring(1);
+				items.add(1, all);
 				if (items.size() == 1){
 					ListBoxModel error = new ListBoxModel();
 					errorMessageTool = "ERROR: Could not load tools for " + packageLanguage + ". Please verify your language and retry.";
 					System.out.println(errorMessageTool);
 					error.add("","null");
 					midAccess = false;
-	        		return error;
+					return error;
 				}
 			} catch (InvalidIdentifierException e) {
 				ListBoxModel error = new ListBoxModel();
@@ -175,26 +175,27 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 				System.out.println(errorMessageTool);
 				error.add("","null");
 				midAccess = false;
-        		return error;
+				return error;
 			}
 			midAccess = false;
-            return items;
-        }
-        
-        private static void fillWithTools (SwampApiWrapper api, String packageLanguage, String projectUUID, ListBoxModel items){
-        	Iterator<Tool> allTools = api.getTools(packageLanguage, projectUUID).iterator();
-    		while (allTools.hasNext()){
-    			Tool nextTool = allTools.next();
-    			items.add(nextTool.getName(),nextTool.getUUIDString());
-    		}
-        }
-        
-        /** 
-         * Fills the Tool list based on the language provided
-         * @param projectUUID the name of the project
-         * @param toolUUID the tool uuid to get all the platforms from
-         * @return a ListBoxModel containing the tools as strings
-         */
+			return items;
+		}
+
+		private static void fillWithTools (SwampApiWrapper api, String packageLanguage, String projectUUID, ListBoxModel items){
+			Iterator<Tool> allTools = api.getTools(packageLanguage, projectUUID).iterator();
+			while (allTools.hasNext()){
+				Tool nextTool = allTools.next();
+				items.add(nextTool.getName(),nextTool.getUUIDString());
+			}
+		}
+
+		/** 
+		 * Fills the Tool list based on the language provided
+		 * @param projectUUID the name of the project
+		 * @param toolUUID the tool uuid to get all the platforms from
+		 * @return a ListBoxModel containing the tools as strings
+		 */
+		/*
         public ListBoxModel doFillPlatformUUIDItems(@QueryParameter @RelativePath("..")
         			String projectUUID, @QueryParameter String toolUUID) {
 			if (toolUUID == null || toolUUID.equals("null") || toolUUID.equals("")){
@@ -223,7 +224,7 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 	        		try {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {
-						
+
 					}
         		}
         	}
@@ -256,63 +257,106 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 			}
 			midAccess = false;
             return items;
-        }
-        
-        private static void fillWithPlatforms (SwampApiWrapper api, ListBoxModel items){
-        	Iterator<Platform> allPlatforms = api.getPlatformsList().iterator();
-    		while (allPlatforms.hasNext()){
-    			Platform nextPlatform = allPlatforms.next();
-    			items.add(nextPlatform.getName(),nextPlatform.getUUIDString());
-    		}
-        }
-    	
-        public boolean multiplePlatforms(@QueryParameter @RelativePath("..")
-    	String projectName, @QueryParameter String toolUUID){
-        	try {
-    			String myProject = api.getProjectFromName(projectName).getUUIDString();
-            	return (api.getTool(toolUUID, myProject).getSupportedPlatforms().size() >= 1);
-    		} catch (Exception e) {
-    			e.printStackTrace();
-    			return false;
-    		}
-        }
+        }*/
+		 
+		public ListBoxModel doFillPlatformUUIDItems(@QueryParameter @RelativePath("..") String packageLanguage,
+				@QueryParameter @RelativePath("..") String buildSystem,
+				@QueryParameter @RelativePath("..") String projectUUID, 
+				@QueryParameter String toolUUID) {
+			if (toolUUID == null || toolUUID.equals("null") || toolUUID.equals("")){
+				ListBoxModel error = new ListBoxModel();
+				errorMessagePlatform = "Please select a tool.";
+				System.out.println(errorMessagePlatform);
+				error.add("","null");
+				midAccess = false;
+				return error;
+			}
+			toolUUID = toolUUID.split(",")[0];
+			if (projectUUID == null){
+				ListBoxModel error = new ListBoxModel();
+				errorMessagePlatform = "ERROR: project UUID not available after 100 retries.";
+				System.out.println(errorMessagePlatform);
+				error.add("","null");
+				midAccess = false;
+				return error;
+			}
+			ListBoxModel items = new ListBoxModel();
+			if (packageLanguage.equalsIgnoreCase("C") || packageLanguage.equalsIgnoreCase("C++")) {
+				for (Platform platform : api.getSupportedPlatforms(toolUUID, projectUUID)) {
+					items.add(platform.getName(), platform.getUUIDString());
+				}
+			}else {
+				Platform platform = api.getDefaultPlatform(api.getPkgTypeString(packageLanguage, "", buildSystem, null));
+				items.add(platform.getName(), platform.getUUIDString());
+			}
+			
+			if (items.isEmpty()){
+				ListBoxModel error = new ListBoxModel();
+				errorMessagePlatform = "ERROR: Could not load platforms for " + api.getTool(toolUUID, projectUUID).getName() + ". Please verify your language and retry.";
+				System.out.println(errorMessagePlatform);
+				error.add("","null");
+				midAccess = false;
+				return error;
+			}
+			midAccess = false;
+			return items;
+		}
 
-        /**
-         * Performs on-the-fly validation of the tool.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
-        public FormValidation doCheckToolUUID(@QueryParameter String value, @QueryParameter String toolUUID){
-        	if (errorMessageTool != null){
-        		String msg = errorMessageTool;
-        		errorMessageTool = null;
-        		return FormValidation.error(msg);
-        	}
-        	if (value == null || value.equals("")){
-        		return FormValidation.error("Please select a tool");
-        	}
-        	return FormValidation.ok();
-        }
-        
-        /**
-         * Performs on-the-fly validation of the platform.
-         * @param value This parameter receives the value that the user has typed.
-         * @return Indicates the outcome of the validation. This is sent to the browser.
-         */
-        public FormValidation doCheckPlatformUUID(@QueryParameter String value, @QueryParameter String platformUUID){
-        	if (errorMessagePlatform != null){
-        		String msg = errorMessagePlatform;
-        		errorMessagePlatform = null;
-        		return FormValidation.error(msg);
-        	}
-        	if (value == null || value.equals("")){
-        		return FormValidation.ok();
-        	}
-        	return FormValidation.ok();
-        }
-		
-        public String getDisplayName() {
-        	return org.continuousassurance.swamp.jenkins.DescriptorImpl.PLUGIN_DISPLAY_NAME;
-        } 
-    }
+		private static void fillWithPlatforms(SwampApiWrapper api, ListBoxModel items){
+			Iterator<Platform> allPlatforms = api.getPlatformsList().iterator();
+			while (allPlatforms.hasNext()){
+				Platform nextPlatform = allPlatforms.next();
+				items.add(nextPlatform.getName(),nextPlatform.getUUIDString());
+			}
+		}
+
+		public boolean multiplePlatforms(@QueryParameter @RelativePath("..")
+		String projectName, @QueryParameter String toolUUID){
+			try {
+				String myProject = api.getProjectFromName(projectName).getUUIDString();
+				return (api.getTool(toolUUID, myProject).getSupportedPlatforms().size() >= 1);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		/**
+		 * Performs on-the-fly validation of the tool.
+		 * @param value This parameter receives the value that the user has typed.
+		 * @return Indicates the outcome of the validation. This is sent to the browser.
+		 */
+		public FormValidation doCheckToolUUID(@QueryParameter String value, @QueryParameter String toolUUID){
+			if (errorMessageTool != null){
+				String msg = errorMessageTool;
+				errorMessageTool = null;
+				return FormValidation.error(msg);
+			}
+			if (value == null || value.equals("")){
+				return FormValidation.error("Please select a tool");
+			}
+			return FormValidation.ok();
+		}
+
+		/**
+		 * Performs on-the-fly validation of the platform.
+		 * @param value This parameter receives the value that the user has typed.
+		 * @return Indicates the outcome of the validation. This is sent to the browser.
+		 */
+		public FormValidation doCheckPlatformUUID(@QueryParameter String value, @QueryParameter String platformUUID){
+			if (errorMessagePlatform != null){
+				String msg = errorMessagePlatform;
+				errorMessagePlatform = null;
+				return FormValidation.error(msg);
+			}
+			if (value == null || value.equals("")){
+				return FormValidation.ok();
+			}
+			return FormValidation.ok();
+		}
+
+		public String getDisplayName() {
+			return org.continuousassurance.swamp.jenkins.DescriptorImpl.PLUGIN_DISPLAY_NAME;
+		} 
+	}
 }
