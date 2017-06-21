@@ -60,6 +60,8 @@ public class ScarfParser implements ScarfInterface {
 	 */
 	private String platform;
 	
+	static final String PKG1 = "pkg1";
+	
 	/**
 	 * Constructor for ResultsParser
 	 * @param f SCARF file being read
@@ -111,6 +113,13 @@ public class ScarfParser implements ScarfInterface {
 	 * @param bug BugInstance that was just parsed from SCARF file
 	 */
 	public void bugCallback(BugInstance bug) {
+		for (Location loc : bug.getLocations()) {
+			String src_file = loc.getSourceFile();
+			if (src_file.startsWith(PKG1)){
+				loc.setSourceFile(src_file.substring(PKG1.length() + 1));
+			}
+		}
+		
 		bugs.add(bug);
 	}
 	

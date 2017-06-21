@@ -45,8 +45,8 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 	private static SwampApiWrapper api = null;
 	private static boolean midAccess = false; 
 
-	public static void setApi(SwampApiWrapper newApi){
-		api = newApi;
+	public static void setSwampApi(SwampApiWrapper api_wrapper){
+		api = api_wrapper;
 	}
 
 	@DataBoundConstructor

@@ -88,7 +88,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SwampPostBuild extends HealthAwarePublisher {
-
 	
 	static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
 		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion","CSS","D","Datalog","Erlang",
@@ -199,7 +198,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	SwampResult emptyResult = null;
     	//If the build failed, exit
     	Result buildResult = build.getResult(); 
-    	if (buildResult == null || (!getDescriptor().getRunOnFail() && buildResult.isWorseOrEqualTo(Result.FAILURE))){
+    	if (buildResult == null ||  buildResult.isWorseOrEqualTo(Result.FAILURE)){
     		if (getDescriptor().getVerbose()){
     			logger.log("[ERROR] Build failed: no point in sending to the SWAMP");
     		}
@@ -259,7 +258,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         if (api == null){
         	logger.log("Logging in...");
         	try {
-				setApi(DescriptorImpl.login(uploadVersion, password, hostUrl));
+				setSwampApi(DescriptorImpl.login(uploadVersion, password, hostUrl));
 			} catch (Exception e) {
 				logger.log("[ERROR] Login failed during build: " + e.getMessage());
 		    	return emptyResult;
@@ -748,7 +747,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	return api;
     }
 
-    public static void setApi(SwampApiWrapper newApi) {
+    public static void setSwampApi(SwampApiWrapper newApi) {
     	api = newApi;
     }
     

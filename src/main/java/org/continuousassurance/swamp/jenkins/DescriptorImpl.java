@@ -68,8 +68,7 @@ public final class DescriptorImpl extends PluginDescriptor{
 	private String defaultProject;
 	private boolean loginFail = false;
 	private boolean verbose;
-	private boolean runOnFail;
-	//private boolean backgroundAssess;
+	
     /**
      * Creates a new instance of {@link DescriptorImpl}.
      * In order to load the persisted global configuration, you have to 
@@ -79,8 +78,8 @@ public final class DescriptorImpl extends PluginDescriptor{
         super(SwampPostBuild.class);
         load();
 	    try {
-		    SwampPostBuild.setApi(login(username, password, hostUrl));
-		    AssessmentInfo.setApi(SwampPostBuild.getSwampApi());
+		    SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+		    AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
 			loginFail = false;
 		} catch (Exception e) {
 			System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
@@ -121,6 +120,19 @@ public final class DescriptorImpl extends PluginDescriptor{
             return FormValidation.error("Please enter a host url.");
         }
         return FormValidation.ok();
+    }
+
+    /**
+     * Tests the connection using the credentials provided
+     * @return validation of the test along with a message
+     */
+    public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
+    	try{
+    		SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+    		return FormValidation.ok("Success");
+    	}catch (Exception e){
+    		return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
+    	}
     }
 
     /**
@@ -180,18 +192,6 @@ public final class DescriptorImpl extends PluginDescriptor{
     	return "ant";
     }
     
-    /**
-     * Tests the connection using the credentials provided
-     * @return validation of the test along with a message
-     */
-    public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
-    	try{
-    		SwampPostBuild.setApi(login(username, password, hostUrl));
-    		return FormValidation.ok("Success");
-    	}catch (Exception e){
-    		return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
-    	}
-    }
     /**
      * Fills the build system list
      * @return a ListBoxModel containing the build systems as strings
@@ -255,7 +255,7 @@ public final class DescriptorImpl extends PluginDescriptor{
     public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
         ListBoxModel items = new ListBoxModel();
     	try {
-    		SwampPostBuild.setApi(login(username, password, hostUrl));
+    		SwampPostBuild.setSwampApi(login(username, password, hostUrl));
     		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
     		//api.login(username, password);
     		Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
@@ -337,11 +337,10 @@ public final class DescriptorImpl extends PluginDescriptor{
     	hostUrl = formData.getString("hostUrl");
     	defaultProject = formData.getString("defaultProject");
     	verbose = formData.getBoolean("verbose");
-    	runOnFail = formData.getBoolean("runOnFail");
-    	//backgroundAssess = formData.getBoolean("backgroundAssess");
+    	
         try {
-        	SwampPostBuild.setApi(login(username, password, hostUrl));
-		    AssessmentInfo.setApi(SwampPostBuild.getSwampApi());
+        	SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+		    AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
 			loginFail = false;
 		} catch (Exception e) {
 			System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
@@ -390,10 +389,6 @@ public final class DescriptorImpl extends PluginDescriptor{
     
     public boolean getVerbose() {
     	return verbose;
-    }
-    
-    public boolean getRunOnFail(){
-    	return runOnFail;
     }
     
     /*public boolean getBackgroundAssess(){
