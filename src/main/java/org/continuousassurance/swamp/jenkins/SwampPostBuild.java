@@ -64,7 +64,9 @@ import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
+import org.continuousassurance.swamp.cli.util.AssessmentStatus;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
+import org.continuousassurance.swamp.cli.util.AssessmentStatus;
 import org.continuousassurance.swamp.session.HTTPException;
 
 import java.io.File;
@@ -349,7 +351,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		try {
 			logger.log(configPath.getRemote() + ", " + archivePath.getRemote() + ", " + projectUUID);
 			packageUUID = api.uploadPackage(configPath.getRemote(),
-					archivePath.getRemote(), projectUUID, isNewPackage(packageName));
+					archivePath.getRemote(), projectUUID,
+					null,
+					isNewPackage(packageName));
 			logger.log("Config exists - " + new File(configPath.getRemote()).exists());
 			logger.log("Archive exists - " + new File(archivePath.getRemote()).exists());
 		} catch (InvalidIdentifierException e) {
@@ -386,7 +390,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		while (assessmentCheck.hasNext()){
 			AssessmentInfo nextAssess = assessmentCheck.next();
 			for (String nextTool : nextAssess.getToolUUID().split(",")){
-				AssessmentInfo newAssess = new AssessmentInfo(nextTool,nextAssess.getPlatformUUID());
+				AssessmentInfo newAssess = new AssessmentInfo(nextTool,nextAssess.getPlatformVersionUUID());
 				assessmentsToRun.add(newAssess);
 			}
 		}
@@ -396,8 +400,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		assessmentUUIDs = new String[assessmentsToRun.size()];
 		for (int i = 0; i < assessmentUUIDs.length;i++){
 			try {
-				logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformName(api));
-				assessmentUUIDs[i] = api.runAssessment(packageUUID, assessmentsToRun.get(i).getToolUUID(), projectUUID, assessmentsToRun.get(i).getPlatformUUID());
+				logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformVersionName(api));
+				assessmentUUIDs[i] = api.runAssessment(packageUUID, 
+						assessmentsToRun.get(i).getToolUUID(), 
+						projectUUID, 
+						assessmentsToRun.get(i).getPlatformVersionUUID()).getUUIDString();
 			} catch (Exception e) {
 				logger.log("[ERROR] Assessment failed: " + e.getMessage());
 			}
@@ -418,7 +425,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			//build.setResult(Result.FAILURE);
 		}
     	//For each assessment
-		Project projectAPI = api.getProject(projectUUID);
+		//Project projectAPI = api.getProject(projectUUID);
 		for (int i = 0; i < assessmentUUIDs.length; i++){
 			AssessmentRecord assessmentRecord = null;
 			String assessmentResults = "null";
@@ -426,7 +433,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			String assessmentName;
 			try {
 				//assessmentName = "swampXml.xml";
-				assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
+				assessmentName = ("Assessment-" + packageName + "-" + uploadVersion + "-" + assessmentsToRun.get(i).getPlatformVersionName(api) + "-" + assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
 				assessmentName = assessmentName.replace("/", "-");
 			} catch (Exception e) {
 				logger.log("[ERROR] Tool / Platform missing unexpectedly: " + e.getMessage());
@@ -435,7 +442,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			//Wait until the assessment is complete
 			while (assessmentResults.equals("null")){
 				assessmentRecord = null;
-				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectAPI)) {
+				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectUUID)) {
 					if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i])){
 						assessmentRecord = executionRecord;
 					}
@@ -447,7 +454,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				}
 				assessmentResults = assessmentRecord.getAssessmentResultUUID();
 				if (!assessmentRecord.getStatus().equals(previousStatus)){
-					logger.log("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
+					//logger.log("Waiting on assessment " + assessmentName + ", Status is " + assessmentRecord.getStatus() + ", Results UUID is " + assessmentResults);
+					logger.log("Waiting on assessment " + assessmentName + ", "
+							+ "Status is " + AssessmentStatus.translateAssessmentStatus(assessmentRecord.getStatus())
+							+ ", Results UUID is " + assessmentResults);
 					previousStatus = assessmentRecord.getStatus();
 				}
 				if (assessmentResults.equals("null")){

@@ -26,6 +26,7 @@ import java.util.List;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.continuousassurance.swamp.api.Platform;
+import org.continuousassurance.swamp.api.PlatformVersion;
 import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
@@ -56,7 +57,7 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 	}
 
 	public String getAssessmentInfo(SwampApiWrapper api, String projectUUID) throws Exception{
-		return "Assessment " + getToolName(api,projectUUID) + " on " + getPlatformName(api);
+		return "Assessment " + getToolName(api,projectUUID) + " on " + getPlatformVersionName(api);
 	}
 
 	public String getToolName(SwampApiWrapper api, String projectUUID) throws Exception{
@@ -78,11 +79,11 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 		return toolUUID;
 	}
 
-	public String getPlatformName(SwampApiWrapper api){
-		return api.getPlatform(platformUUID).getName();
+	public String getPlatformVersionName(SwampApiWrapper api){
+		return api.getPlatformVersion(platformUUID).getName();
 	}
 
-	public String getPlatformUUID(){
+	public String getPlatformVersionUUID(){
 		return platformUUID;
 	}
 
@@ -181,7 +182,10 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 			return items;
 		}
 
-		private static void fillWithTools (SwampApiWrapper api, String packageLanguage, String projectUUID, ListBoxModel items){
+		private static void fillWithTools (SwampApiWrapper api, 
+				String packageLanguage, 
+				String projectUUID, 
+				ListBoxModel items){
 			Iterator<Tool> allTools = api.getTools(packageLanguage, projectUUID).iterator();
 			while (allTools.hasNext()){
 				Tool nextTool = allTools.next();
@@ -282,12 +286,13 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 			}
 			ListBoxModel items = new ListBoxModel();
 			if (packageLanguage.equalsIgnoreCase("C") || packageLanguage.equalsIgnoreCase("C++")) {
-				for (Platform platform : api.getSupportedPlatforms(toolUUID, projectUUID)) {
-					items.add(platform.getName(), platform.getUUIDString());
+				for (PlatformVersion platform_version : api.getSupportedPlatformVersions(toolUUID, projectUUID)) {
+					items.add(platform_version.getName(), platform_version.getUUIDString());
 				}
 			}else {
-				Platform platform = api.getDefaultPlatform(api.getPkgTypeString(packageLanguage, "", buildSystem, null));
-				items.add(platform.getName(), platform.getUUIDString());
+				PlatformVersion platform_version = api.getDefaultPlatformVersion(api.getPkgTypeString(packageLanguage,
+						"", buildSystem, null));
+				items.add(platform_version.getName(), platform_version.getUUIDString());
 			}
 			
 			if (items.isEmpty()){
@@ -303,9 +308,9 @@ public class AssessmentInfo  extends AbstractDescribableImpl<AssessmentInfo> imp
 		}
 
 		private static void fillWithPlatforms(SwampApiWrapper api, ListBoxModel items){
-			Iterator<Platform> allPlatforms = api.getPlatformsList().iterator();
+			Iterator<PlatformVersion> allPlatforms = api.getAllPlatformVersionsList().iterator();
 			while (allPlatforms.hasNext()){
-				Platform nextPlatform = allPlatforms.next();
+				PlatformVersion nextPlatform = allPlatforms.next();
 				items.add(nextPlatform.getName(),nextPlatform.getUUIDString());
 			}
 		}
