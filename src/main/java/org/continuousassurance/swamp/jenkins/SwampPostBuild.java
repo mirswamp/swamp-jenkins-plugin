@@ -400,7 +400,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		assessmentUUIDs = new String[assessmentsToRun.size()];
 		for (int i = 0; i < assessmentUUIDs.length;i++){
 			try {
-				logger.log("Assessing with package " + packageName + ", project " + projectName + ", tool " + assessmentsToRun.get(i).getToolName(api,projectUUID) + ", and platform " + assessmentsToRun.get(i).getPlatformVersionName(api));
+				logger.log("Running Assessment (package: " + packageName + "-" + uploadVersion + 
+						", tool: " + assessmentsToRun.get(i).getToolName(api,projectUUID) + 
+						", platform: " + assessmentsToRun.get(i).getPlatformVersionName(api) + ")");
 				assessmentUUIDs[i] = api.runAssessment(packageUUID, 
 						assessmentsToRun.get(i).getToolUUID(), 
 						projectUUID, 
@@ -424,6 +426,58 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("[ERROR] Could not create output directory: " + e.getMessage());
 			//build.setResult(Result.FAILURE);
 		}
+		
+		boolean assessment_done[] = new boolean[assessmentsToRun.size()];
+		for(int i = 0; i < assessment_done.length; ++i) {
+			assessment_done[i] = false;
+		}
+		int all_finished = 0;
+		while(all_finished < assessmentUUIDs.length) {
+			try {
+				Thread.sleep(30000);
+				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectUUID)) {
+					for (int i = 0; i < assessmentUUIDs.length; i++){
+						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i]) 
+								&& assessment_done[i] == false){
+							if (executionRecord.getAssessmentResultUUID().equals("null")) {
+								// Assessment still in progress
+								String assessmentName = packageName + "-" + uploadVersion + ", " + 
+										assessmentsToRun.get(i).getPlatformVersionName(api) + ", " + 
+										assessmentsToRun.get(i).getToolName(api, projectUUID) + ")";
+									logger.log("Assessment Status: (" + assessmentName + "): " +
+											AssessmentStatus.translateAssessmentStatus(executionRecord.getStatus()));
+							}else {
+								// Assessment done in progress
+								String results_filename = ("Assessment-" + packageName + "-" + uploadVersion + "-" + 
+										assessmentsToRun.get(i).getPlatformVersionName(api) + "-" + 
+										assessmentsToRun.get(i).getToolName(api,projectUUID).replace('-', '_')).replace(' ', '_') + ".xml";
+								results_filename = results_filename.replace("/", "-");
+								
+								FilePath newFile = new FilePath(outputPath, results_filename);
+								logger.log("Assessment finished. Writing results to " + newFile.getRemote());
+								api.getAssessmentResults(projectUUID, 
+										executionRecord.getAssessmentResultUUID(), 
+										newFile.getRemote());
+								// book keeping
+								assessment_done[i] = true;
+								++all_finished;
+							}
+						}
+					}
+				}
+				
+			} catch (InterruptedException e) {
+				logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
+				//build.setResult(Result.FAILURE);
+				return emptyResult;
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return emptyResult;
+			}
+		}
+			
+		/*
     	//For each assessment
 		//Project projectAPI = api.getProject(projectUUID);
 		for (int i = 0; i < assessmentUUIDs.length; i++){
@@ -472,7 +526,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			}
 
 			//Save the assessment to the requested spot
-			FilePath newFile = new FilePath(outputPath,assessmentName);
+			FilePath newFile = new FilePath(outputPath, assessmentName);
 			try {
 				int fileNum = 0;
 				while (newFile.exists()){
@@ -489,7 +543,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			}
 			api.getAssessmentResults(projectUUID, assessmentResults, newFile.getRemote());
 			logger.log("Assessment " + newFile.getRemote() + " exists = " + newFile.exists());
-		}
+		}*/
 
 		//Log out
 		if (getDescriptor().getVerbose()){
@@ -498,11 +552,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		api.logout();
 		api = null;
 		
-		logger.log("Collecting SWAMP analysis files...");
+		logger.log("Collecting SWAMP results files...");
 
 		SwampResult result = null;
 		//Add every assessment matching this file pattern
-		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion.replace("/", "-") + "*";
+		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion + "*";
 		//Prepare the parser with the given files
         FilesParser collector = new FilesParser("SWAMP",
                 assessmentPattern,
@@ -512,8 +566,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         ParserResult project = workspace.act(collector);
         logger.log(project.getLogMessages());
         //Save the results
-        result = new SwampResult(build, defaultEncoding, project,
-                true,true);
+        result = new SwampResult(build, defaultEncoding, project, true, true);
         //Post-Process the results into data for the analysis-core plugin
         build.addAction(new SwampResultAction(build, this, result));
         //Return the results
