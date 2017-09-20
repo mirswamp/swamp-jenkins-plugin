@@ -161,7 +161,15 @@ public class SwampPostBuild extends HealthAwarePublisher {
 	
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, String packageName, String packageVersion, String packageDir, String packageLanguage, String packageLanguageVersion, String buildSystem, String buildDirectory, String buildFile, String buildTarget, String buildCommand, String buildOptions, String configCommand, String configOptions, String configDirectory, String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
+    public SwampPostBuild(String projectUUID, List<AssessmentInfo> assessmentInfo, 
+    		String packageName, String packageVersion, 
+    		String packageDir, String packageLanguage, 
+    		String packageLanguageVersion, String buildSystem, 
+    		String buildDirectory, String buildFile, 
+    		String buildTarget, String buildCommand, 
+    		String buildOptions, String configCommand, 
+    		String configOptions, String configDirectory, 
+    		String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
         this.username = getDescriptor().getUsername();
         this.password = getDescriptor().getPassword();
@@ -260,7 +268,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
         if (api == null){
         	logger.log("Logging in...");
         	try {
-				setSwampApi(DescriptorImpl.login(uploadVersion, password, hostUrl));
+				setSwampApi(DescriptorImpl.login(username, password, hostUrl));
 			} catch (Exception e) {
 				logger.log("[ERROR] Login failed during build: " + e.getMessage());
 		    	return emptyResult;
@@ -556,7 +564,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
 
 		SwampResult result = null;
 		//Add every assessment matching this file pattern
-		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion + "*";
+		String assessmentPattern = "**/Assessment-" + packageName + "-" + uploadVersion + "*.xml";
+		assessmentPattern = assessmentPattern.replace(' ', '_');
 		//Prepare the parser with the given files
         FilesParser collector = new FilesParser("SWAMP",
                 assessmentPattern,
