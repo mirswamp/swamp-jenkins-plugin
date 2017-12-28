@@ -261,7 +261,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		//uploadVersion = uploadVersion.replaceAll("/", "-");
 		//uploadVersion = uploadVersion.replaceAll("\\", "-");
 		uploadVersion = uploadVersion.replaceAll("/", "-").replaceAll(":", "-");
-		
+
     	archiveName = packageName + "-" + uploadVersion + ".zip";
 		//String jenkinsVersion = Jenkins.VERSION;
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
