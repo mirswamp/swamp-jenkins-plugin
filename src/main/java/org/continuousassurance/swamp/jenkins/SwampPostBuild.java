@@ -60,6 +60,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 import org.continuousassurance.swamp.api.AssessmentRecord;
 import org.continuousassurance.swamp.api.PackageThing;
+import org.continuousassurance.swamp.api.PackageVersion;
 import org.continuousassurance.swamp.api.Platform;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.api.Tool;
@@ -257,9 +258,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
 			}
 		}
-		uploadVersion = uploadVersion.replaceAll("/", "-");
+		//uploadVersion = uploadVersion.replaceAll("/", "-");
 		//uploadVersion = uploadVersion.replaceAll("\\", "-");
-    	
+		uploadVersion = uploadVersion.replaceAll("/", "-").replaceAll(":", "-");
+		
     	archiveName = packageName + "-" + uploadVersion + ".zip";
 		//String jenkinsVersion = Jenkins.VERSION;
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
@@ -410,11 +412,12 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			try {
 				logger.log("Running Assessment (package: " + packageName + "-" + uploadVersion + 
 						", tool: " + assessmentsToRun.get(i).getToolName(api,projectUUID) + 
-						", platform: " + assessmentsToRun.get(i).getPlatformVersionName(api) + ")");
-				assessmentUUIDs[i] = api.runAssessment(packageUUID, 
-						assessmentsToRun.get(i).getToolUUID(), 
-						projectUUID, 
-						assessmentsToRun.get(i).getPlatformVersionUUID()).getUUIDString();
+						", platform: " + assessmentsToRun.get(i).getPlatformVersionName(api) + ")");		
+				
+				assessmentUUIDs[i] = api.runAssessment(api.getPackageVersion(packageUUID, projectUUID), 
+						api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID), 
+						api.getProject(projectUUID), 
+						api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
 			} catch (Exception e) {
 				logger.log("[ERROR] Assessment failed: " + e.getMessage());
 			}
