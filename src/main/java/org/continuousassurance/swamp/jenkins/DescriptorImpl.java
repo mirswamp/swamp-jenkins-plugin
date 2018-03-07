@@ -330,10 +330,12 @@ public final class DescriptorImpl extends PluginDescriptor{
     static Proxy getProxy(String hostUrl) {
         Proxy proxy = new Proxy();
         
-        if (Jenkins.getInstance() != null && Jenkins.getInstance().proxy != null) {
-           
-            @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-            ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+        @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        final Jenkins jenkins = Jenkins.getActiveInstance();
+        
+        if (jenkins != null && jenkins.proxy != null) { 
+
+            ProxyConfiguration proxyConfig = jenkins.proxy;
             for (Pattern pattern : proxyConfig.getNoProxyHostPatterns()) {
                 if (pattern.matcher(hostUrl).matches()) {
                     return proxy;
