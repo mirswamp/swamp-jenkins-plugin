@@ -90,8 +90,8 @@ public final class FindBugsMessages {
         InputStream file = null;
         try {
             file = FindBugsMessages.class.getResourceAsStream(fileName);
-            List<Pattern> patterns = parse(file);
-            for (Pattern pattern : patterns) {
+            List<BugPattern> patterns = parse(file);
+            for (BugPattern pattern : patterns) {
                 if(messagesCache.get(pattern.getType()) != null || shortMessagesCache.get(pattern.getType()) != null) {
                     logger.warning("The bug pattern "+pattern.getType()+" was already loaded. It could be a duplicate.");
                 }
@@ -115,16 +115,16 @@ public final class FindBugsMessages {
      * @throws IOException
      *             if we can't read the file
      */
-    public List<Pattern> parse(final InputStream file) throws IOException, SAXException {
+    public List<BugPattern> parse(final InputStream file) throws IOException, SAXException {
         Digester digester = new Digester();
         digester.setValidating(false);
         digester.setClassLoader(FindBugsMessages.class.getClassLoader());
 
-        List<Pattern> patterns = new ArrayList<Pattern>();
+        List<BugPattern> patterns = new ArrayList<BugPattern>();
         digester.push(patterns);
 
         String startPattern = "*/BugPattern";
-        digester.addObjectCreate(startPattern, Pattern.class);
+        digester.addObjectCreate(startPattern, BugPattern.class);
         digester.addSetProperties(startPattern);
         digester.addCallMethod("*/BugPattern/Details", "setDescription", 0);
         digester.addCallMethod("*/BugPattern/ShortDescription", "setShortDescription", 0);

@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
 import hudson.Extension;
@@ -326,11 +327,17 @@ public final class DescriptorImpl extends PluginDescriptor{
         return PLUGIN_DISPLAY_NAME;
     }
 
-    static Proxy getProxy() {
+    static Proxy getProxy(String hostUrl) {
         ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
 
         Proxy proxy = new Proxy();
 
+        for (Pattern pattern : proxyConfig.getNoProxyHostPatterns()) {
+            if (pattern.matcher(hostUrl).matches()) {
+                return proxy;
+            }
+        }
+        
         if (proxyConfig.name != null && !proxyConfig.name.equalsIgnoreCase("") &&
                 proxyConfig.port != -1 ) {
 
@@ -375,7 +382,7 @@ public final class DescriptorImpl extends PluginDescriptor{
 
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
         SwampApiWrapper api = new SwampApiWrapper();
-        Proxy proxy = getProxy();
+        Proxy proxy = getProxy(hostUrl);
         // System.out.println("[INFO]: SWAMP using proxy settings" + proxy);
         api.login(username, password, hostUrl, proxy);
         return api;

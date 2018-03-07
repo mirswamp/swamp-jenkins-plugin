@@ -24,7 +24,7 @@ package org.continuousassurance.swamp.jenkins;
  *
  * Derived from Ulli Hafner's Script
  */
-public class Pattern {
+public class BugPattern {
     private String type;
     private String description;
     private String shortDescription;

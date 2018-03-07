@@ -59,7 +59,7 @@ SWAMP.hpi file using the following steps:
 The SWAMP Jenkins Plugin must be configured before use.
 This configuration is modified on the following web interface:
 
-. Go to your Jenkins URL in a web browser 
+. Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Configure System_
 . Scroll to the SWAMP Configuration Section (near the bottom of the
   configuration page), and enter the following:
@@ -153,3 +153,8 @@ Otherwise, the SWAMP web site can be used to view results of your assessments:
 . Click _Results_
 . Click the checkbox next to the assessment results you would like to review
 . Click _View Assessment Results_ button
+
+== Accessing SWAMP via a HTTP Proxy:
+
+SWAMP plugin uses the http proxy settings specified on the standard jenkins interface `https://wiki.jenkins.io/display/JENKINS/JenkinsBehindProxy`.
+Incase if you do not want the SWAMP plugin to use the http proxy, specify the SWAMP URL in the *No Proxy Host* section in the proxy settings. 
