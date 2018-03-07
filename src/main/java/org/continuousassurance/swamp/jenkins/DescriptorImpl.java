@@ -15,7 +15,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express implied.
   See the License for the specific language governing permissions and
   limitations under the License.
-  */
+ */
 
 package org.continuousassurance.swamp.jenkins;
 
@@ -26,6 +26,7 @@ import java.util.Iterator;
 
 import jenkins.model.Jenkins;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
@@ -40,6 +41,7 @@ import net.sf.json.JSONObject;
 //import org.continuousassurance.swamp.Messages;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
+import org.continuousassurance.swamp.session.util.Proxy;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -53,7 +55,7 @@ import org.kohsuke.stapler.StaplerRequest;
 public final class DescriptorImpl extends PluginDescriptor{
     /** The ID of this plug-in is used as URL. */
     static final String PLUGIN_ID = "swamp";
-    
+
     static final String PLUGIN_DISPLAY_NAME = "SWAMP Assessment";
     /** The URL of the result action. */
     static final String RESULT_URL = PluginDescriptor.createResultUrlName(PLUGIN_ID);
@@ -63,12 +65,12 @@ public final class DescriptorImpl extends PluginDescriptor{
     static final String ICON_URL = ICON_URL_PREFIX + "swamp-logo-small.png";
 
     private String username;
-	private String password;
-	private String hostUrl;
-	private String defaultProject;
-	private boolean loginFail = false;
-	private boolean verbose;
-	
+    private String password;
+    private String hostUrl;
+    private String defaultProject;
+    private boolean loginFail = false;
+    private boolean verbose;
+
     /**
      * Creates a new instance of {@link DescriptorImpl}.
      * In order to load the persisted global configuration, you have to 
@@ -77,14 +79,14 @@ public final class DescriptorImpl extends PluginDescriptor{
     public DescriptorImpl() {
         super(SwampPostBuild.class);
         load();
-	    try {
-		    SwampPostBuild.setSwampApi(login(username, password, hostUrl));
-		    AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
-			loginFail = false;
-		} catch (Exception e) {
-			System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
-			loginFail = true;
-		}
+        try {
+            SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+            AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
+            loginFail = false;
+        } catch (Exception e) {
+            System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
+            loginFail = true;
+        }
     }
     /**
      * Performs on-the-fly validation of the form field 'username'.
@@ -127,12 +129,12 @@ public final class DescriptorImpl extends PluginDescriptor{
      * @return validation of the test along with a message
      */
     public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
-    	try{
-    		SwampPostBuild.setSwampApi(login(username, password, hostUrl));
-    		return FormValidation.ok("Success");
-    	}catch (Exception e){
-    		return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
-    	}
+        try{
+            SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+            return FormValidation.ok("Success");
+        }catch (Exception e){
+            return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
+        }
     }
 
     /**
@@ -153,15 +155,15 @@ public final class DescriptorImpl extends PluginDescriptor{
      * @return Indicates the outcome of the validation. This is sent to the browser.
      */
     public FormValidation doCheckPackageLanguage(@QueryParameter String value){
-		try {
-		} catch (Exception e) {
-			return FormValidation.error("Could not log in: "+e.getMessage() + ". Check your credentials in the global configuration.");
-		}
-    	String convertedLang = SwampPostBuild.getSwampApi().getPkgTypeString(value, "", "", null);
-    	if (convertedLang == null){
-    		return FormValidation.error("Language not supported");
-    	}
-    	return FormValidation.ok();
+        try {
+        } catch (Exception e) {
+            return FormValidation.error("Could not log in: "+e.getMessage() + ". Check your credentials in the global configuration.");
+        }
+        String convertedLang = SwampPostBuild.getSwampApi().getPkgTypeString(value, "", "", null);
+        if (convertedLang == null){
+            return FormValidation.error("Language not supported");
+        }
+        return FormValidation.ok();
     }
 
     /**
@@ -169,29 +171,29 @@ public final class DescriptorImpl extends PluginDescriptor{
      * @return a ListBoxModel containing the languages as strings
      */
     public ListBoxModel doFillPackageLanguageItems() {
-    	//TODO Get the list of valid languages from the SWAMP
-    	ListBoxModel items = new ListBoxModel();
-    	for (int i = 0; i < SwampPostBuild.VALID_LANGUAGES.length; i++){
-    		items.add(SwampPostBuild.VALID_LANGUAGES[i]);
-    	}
+        //TODO Get the list of valid languages from the SWAMP
+        ListBoxModel items = new ListBoxModel();
+        for (int i = 0; i < SwampPostBuild.VALID_LANGUAGES.length; i++){
+            items.add(SwampPostBuild.VALID_LANGUAGES[i]);
+        }
         return items;
     }
     /**
      * Guesses the language of the package
      */
     public String detectLanguage() {
-    	//TODO - detect language of package
-    	return "Java";
+        //TODO - detect language of package
+        return "Java";
     }
-    
+
     /**
      * Guesses the build of the package
      */
     public String detectBuildSystem() {
-    	//TODO - detect build system based on language or something
-    	return "ant";
+        //TODO - detect build system based on language or something
+        return "ant";
     }
-    
+
     /**
      * Fills the build system list
      * @return a ListBoxModel containing the build systems as strings
@@ -200,11 +202,11 @@ public final class DescriptorImpl extends PluginDescriptor{
         ListBoxModel items = new ListBoxModel();
         HashMap<String,String[]> buildSystemsPerLanguage = SwampPostBuild.setupBuildSystemsPerLanguage();
         if (buildSystemsPerLanguage.containsKey(packageLanguage)){
-        	for (int i = 0; i < buildSystemsPerLanguage.get(packageLanguage).length; i++){
-        		items.add(buildSystemsPerLanguage.get(packageLanguage)[i]);
-        	}
+            for (int i = 0; i < buildSystemsPerLanguage.get(packageLanguage).length; i++){
+                items.add(buildSystemsPerLanguage.get(packageLanguage)[i]);
+            }
         }else{
-        	items.add("","null");
+            items.add("","null");
         }
         return items;
     }
@@ -215,16 +217,16 @@ public final class DescriptorImpl extends PluginDescriptor{
      * @return Indicates the outcome of the validation. This is sent to the browser.
      */
     public FormValidation doCheckBuildSystem(@QueryParameter String value){
-    	if (value.equals("null")){
-    		return FormValidation.error("Language not supported: Please select a valid language");
-    	}
-    	HashMap<String,String> defaultBuildFiles = SwampPostBuild.setupDefaultBuildFiles();
-    	if (!defaultBuildFiles.containsKey(value)){
-    		return FormValidation.warning("Under advanced settings, please enter the command used to clean your project.");
-    	}
-    	return FormValidation.ok();
+        if (value.equals("null")){
+            return FormValidation.error("Language not supported: Please select a valid language");
+        }
+        HashMap<String,String> defaultBuildFiles = SwampPostBuild.setupDefaultBuildFiles();
+        if (!defaultBuildFiles.containsKey(value)){
+            return FormValidation.warning("Under advanced settings, please enter the command used to clean your project.");
+        }
+        return FormValidation.ok();
     }
-    
+
     /**
      * Fills the project names list
      * @return a ListBoxModel containing the project names as strings
@@ -232,86 +234,86 @@ public final class DescriptorImpl extends PluginDescriptor{
     public ListBoxModel doFillProjectUUIDItems() {
         ListBoxModel items = new ListBoxModel();
         //items.add(defaultProject);
-    	try {
-			//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-    		//api.login(username, password);
-    		Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
-    		while(myProjects.hasNext()){
-    			Project nextProject = myProjects.next();
-    			items.add(nextProject.getFullName(),nextProject.getUUIDString());
-    		}
-		} catch (Exception e) {
-			ListBoxModel error = new ListBoxModel();
-    		error.add("ERROR: could not log in. Check your credentials in the global configuration.","null");
-    		return error;
-		}
-    	return items;
+        try {
+            //SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
+            //api.login(username, password);
+            Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
+            while(myProjects.hasNext()){
+                Project nextProject = myProjects.next();
+                items.add(nextProject.getFullName(),nextProject.getUUIDString());
+            }
+        } catch (Exception e) {
+            ListBoxModel error = new ListBoxModel();
+            error.add("ERROR: could not log in. Check your credentials in the global configuration.","null");
+            return error;
+        }
+        return items;
     }
-    
+
     /**
      * Fills the project names list
      * @return a ListBoxModel containing the project names as strings
      */
     public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
         ListBoxModel items = new ListBoxModel();
-    	try {
-    		SwampPostBuild.setSwampApi(login(username, password, hostUrl));
-    		//SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-    		//api.login(username, password);
-    		Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
-    		while(myProjects.hasNext()){
-    			Project nextProject = myProjects.next();
-    			items.add(nextProject.getFullName(), nextProject.getUUIDString());
-    		}
-		} catch (Exception e) {
-			ListBoxModel error = new ListBoxModel();
-    		error.add("","null");
-    		return error;
-		}
-    	return items;
+        try {
+            SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+            //SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
+            //api.login(username, password);
+            Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
+            while(myProjects.hasNext()){
+                Project nextProject = myProjects.next();
+                items.add(nextProject.getFullName(), nextProject.getUUIDString());
+            }
+        } catch (Exception e) {
+            ListBoxModel error = new ListBoxModel();
+            error.add("","null");
+            return error;
+        }
+        return items;
     }
-    
+
     /**
      * Performs on-the-fly validation of the tool.
      * @param value This parameter receives the value that the user has typed.
      * @return Indicates the outcome of the validation. This is sent to the browser.
      */
     public FormValidation doCheckDefaultProject(@QueryParameter String value){
-    	if (value == null || value.equals("")){
-    		return FormValidation.error("Select a project to be your global default");
-    	}
-    	if (value.equals("null")){
-    		return FormValidation.error("ERROR: could not log in.");
-    	}
-    	return FormValidation.ok();
+        if (value == null || value.equals("")){
+            return FormValidation.error("Select a project to be your global default");
+        }
+        if (value.equals("null")){
+            return FormValidation.error("ERROR: could not log in.");
+        }
+        return FormValidation.ok();
     }
 
     /**
      * Gets the default name of the package from Jenkins
      */
     public String defaultPackageName(){
-    	//TODO detect default package name
-    	Jenkins instance = Jenkins.getInstance(); 
-    	if (instance != null){
-	    	String jobName = instance.getDescriptor().getDescriptorFullUrl();
-	    	jobName = jobName.substring(jobName.indexOf("job/") + 4);
-	    	try {
-				jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-	    	return jobName;
-    	}
-    	return null;
+        //TODO detect default package name
+        Jenkins instance = Jenkins.getInstance(); 
+        if (instance != null){
+            String jobName = instance.getDescriptor().getDescriptorFullUrl();
+            jobName = jobName.substring(jobName.indexOf("job/") + 4);
+            try {
+                jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            return jobName;
+        }
+        return null;
     }
 
     /**
      * Gets the default host URL from the SWAMP
      */
     public String defaultHostUrl(){
-    	return SwampApiWrapper.SWAMP_HOST_NAME;
+        return SwampApiWrapper.SWAMP_HOST_NAME;
     }
-    
+
     public boolean isApplicable(Class<? extends AbstractProject> aClass) {
         // Indicates that this builder can be used with all kinds of project types 
         return true;
@@ -323,6 +325,27 @@ public final class DescriptorImpl extends PluginDescriptor{
     public String getDisplayName() {
         return PLUGIN_DISPLAY_NAME;
     }
+
+    static Proxy getProxy() {
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
+
+        Proxy proxy = new Proxy();
+
+        if (proxyConfig.name != null && !proxyConfig.name.equalsIgnoreCase("") &&
+                proxyConfig.port != -1 ) {
+
+            proxy.setHost(proxyConfig.name);
+            proxy.setPort(proxyConfig.port);
+            if (proxyConfig.getUserName() != null && proxyConfig.getPassword() != null) {
+                proxy.setUsername(proxyConfig.getUserName());
+                proxy.setPassword(proxyConfig.getPassword());
+            }
+            proxy.setScheme("http");
+            proxy.setConfigured(true);
+
+        }
+        return proxy;
+    }
     
     /**
      * Saves the global configuration for use during the build
@@ -332,28 +355,30 @@ public final class DescriptorImpl extends PluginDescriptor{
      */
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-    	username = formData.getString("username");
-    	password = formData.getString("password");
-    	hostUrl = formData.getString("hostUrl");
-    	defaultProject = formData.getString("defaultProject");
-    	verbose = formData.getBoolean("verbose");
-    	
+        username = formData.getString("username");
+        password = formData.getString("password");
+        hostUrl = formData.getString("hostUrl");
+        defaultProject = formData.getString("defaultProject");
+        verbose = formData.getBoolean("verbose");
+
         try {
-        	SwampPostBuild.setSwampApi(login(username, password, hostUrl));
-		    AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
-			loginFail = false;
-		} catch (Exception e) {
-			System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
-			loginFail = true;
-		}
+            SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+            AssessmentInfo.setSwampApi(SwampPostBuild.getSwampApi());
+            loginFail = false;
+        } catch (Exception e) {
+            System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
+            loginFail = true;
+        }
         save();
         return super.configure(req,formData);
     }
-    
+
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
-    	SwampApiWrapper api = new SwampApiWrapper();
-    	api.login(username, password, hostUrl);
-    	return api;
+        SwampApiWrapper api = new SwampApiWrapper();
+        Proxy proxy = getProxy();
+        // System.out.println("[INFO]: SWAMP using proxy settings" + proxy);
+        api.login(username, password, hostUrl, proxy);
+        return api;
     }
 
     @Override
@@ -370,34 +395,34 @@ public final class DescriptorImpl extends PluginDescriptor{
     public String getSummaryIconUrl() {
         return ICON_URL_PREFIX + "swamp-48x48.png";
     }
-    
+
     public String getPassword() {
-		return password;
-	}
-    
+        return password;
+    }
+
     public String getUsername() {
-		return username;
-	}
-    
+        return username;
+    }
+
     public String getHostUrl() {
-    	return hostUrl;
+        return hostUrl;
     }
-    
+
     public String getDefaultProject() {
-		return defaultProject;
-	}
-    
-    public boolean getVerbose() {
-    	return verbose;
+        return defaultProject;
     }
-    
+
+    public boolean getVerbose() {
+        return verbose;
+    }
+
     /*public boolean getBackgroundAssess(){
     	return backgroundAssess;
     }*/
-    
+
     public boolean getLoginFail(){
-    	return loginFail;
+        return loginFail;
     }
-    
-    
+
+
 }
