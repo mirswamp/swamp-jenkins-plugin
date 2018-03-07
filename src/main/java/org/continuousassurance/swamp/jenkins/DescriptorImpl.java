@@ -328,28 +328,29 @@ public final class DescriptorImpl extends PluginDescriptor{
     }
 
     static Proxy getProxy(String hostUrl) {
-        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
-
         Proxy proxy = new Proxy();
-
-        for (Pattern pattern : proxyConfig.getNoProxyHostPatterns()) {
-            if (pattern.matcher(hostUrl).matches()) {
-                return proxy;
-            }
-        }
+        ProxyConfiguration proxyConfig = Jenkins.getInstance().proxy;
         
-        if (proxyConfig.name != null && !proxyConfig.name.equalsIgnoreCase("") &&
-                proxyConfig.port != -1 ) {
-
-            proxy.setHost(proxyConfig.name);
-            proxy.setPort(proxyConfig.port);
-            if (proxyConfig.getUserName() != null && proxyConfig.getPassword() != null) {
-                proxy.setUsername(proxyConfig.getUserName());
-                proxy.setPassword(proxyConfig.getPassword());
+        if (proxyConfig != null) {
+            for (Pattern pattern : proxyConfig.getNoProxyHostPatterns()) {
+                if (pattern.matcher(hostUrl).matches()) {
+                    return proxy;
+                }
             }
-            proxy.setScheme("http");
-            proxy.setConfigured(true);
-
+            
+            if (proxyConfig.name != null && !proxyConfig.name.equalsIgnoreCase("") &&
+                    proxyConfig.port != -1 ) {
+    
+                proxy.setHost(proxyConfig.name);
+                proxy.setPort(proxyConfig.port);
+                if (proxyConfig.getUserName() != null && proxyConfig.getPassword() != null) {
+                    proxy.setUsername(proxyConfig.getUserName());
+                    proxy.setPassword(proxyConfig.getPassword());
+                }
+                proxy.setScheme("http");
+                proxy.setConfigured(true);
+    
+            }
         }
         return proxy;
     }
