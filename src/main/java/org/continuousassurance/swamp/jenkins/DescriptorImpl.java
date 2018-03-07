@@ -20,6 +20,8 @@
 package org.continuousassurance.swamp.jenkins;
 
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -330,6 +332,16 @@ public final class DescriptorImpl extends PluginDescriptor{
     static Proxy getProxy(String hostUrl) {
         Proxy proxy = new Proxy();
         
+        System.out.println("[INFO]: SWAMP url " + hostUrl);
+        URL url = null;
+        try {
+            url = new URL(hostUrl);
+        } catch (MalformedURLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return proxy;
+        }
+        
         @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         final Jenkins jenkins = Jenkins.getActiveInstance();
         
@@ -337,7 +349,8 @@ public final class DescriptorImpl extends PluginDescriptor{
 
             ProxyConfiguration proxyConfig = jenkins.proxy;
             for (Pattern pattern : proxyConfig.getNoProxyHostPatterns()) {
-                if (pattern.matcher(hostUrl).matches()) {
+                if (pattern.matcher(url.getHost()).matches()) {
+                    System.out.println("[INFO]: SWAMP skipping proxy usage " + hostUrl);
                     return proxy;
                 }
             }
