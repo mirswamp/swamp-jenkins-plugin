@@ -41,6 +41,30 @@ NOTE: Not available yet.
 . Click the _install without restart_ button
 . Click the _Go back to the top page_ link
 
+== Update the Plugin
+To update the SWAMP Plugin
+. Go to your Jenkins URL in a web browser
+. Click _Manage Jenkins_ -> _Manage Plugins_
+. Click the _Updates_ tab
+. Enter *SWAMP Plugin* in the search field at the top right of the page
+. Click the install checkbox next to the SWAMP Plugin
+. Click the _Download now and install after restart_ button
+. Click the _Go back to the top page_ link
+
+=== Install Using the Jenkins Plugin Store
+The SWAMP Jenking Plugin can be installed directly from Jenkins using the on-line
+plugins available within Jenkins using the following steps:
+
+NOTE: Not available yet.
+
+. Go to your Jenkins URL in a web browser
+. Click _Manage Jenkins_ -> _Manage Plugins_
+. Click the _Available_ tab
+. Enter *SWAMP Plugin* in the search field at the top right of the page
+. Click the install checkbox next to the SWAMP Plugin
+. Click the _install without restart_ button
+. Click the _Go back to the top page_ link
+
 === Install from a .hpi File
 The SWAMP Jenkins plugin can be installed directly from
 SWAMP.hpi file using the following steps:
@@ -157,4 +181,4 @@ Otherwise, the SWAMP web site can be used to view results of your assessments:
 == Accessing SWAMP via a HTTP Proxy:
 
 SWAMP plugin uses the http proxy settings specified on the standard jenkins interface `https://wiki.jenkins.io/display/JENKINS/JenkinsBehindProxy`.
-Incase if you do not want the SWAMP plugin to use the http proxy, specify the SWAMP URL in the *No Proxy Host* section in the proxy settings. 
+Incase if you do not want the SWAMP plugin to use the http proxy, specify the SWAMP URL in the *No Proxy Host* section in the proxy settings.
