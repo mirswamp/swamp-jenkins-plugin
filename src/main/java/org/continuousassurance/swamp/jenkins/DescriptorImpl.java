@@ -23,8 +23,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
@@ -32,19 +35,31 @@ import hudson.Extension;
 import hudson.ProxyConfiguration;
 import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.model.Queue;
 import hudson.model.Descriptor.FormException;
+import hudson.model.queue.Tasks;
 import hudson.plugins.analysis.core.PluginDescriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
 
+import hudson.security.ACL;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.cloudbees.plugins.credentials.matchers.IdMatcher;
 
-
-
+import org.apache.commons.lang3.StringUtils;
 //import org.continuousassurance.swamp.Messages;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
 import org.continuousassurance.swamp.session.util.Proxy;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -70,6 +85,7 @@ public final class DescriptorImpl extends PluginDescriptor{
     private String username;
     private String password;
     private String hostUrl;
+    private String credentialId;
     private String defaultProject;
     private boolean loginFail = false;
     private boolean verbose;
@@ -91,30 +107,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             loginFail = true;
         }
     }
-    /**
-     * Performs on-the-fly validation of the form field 'username'.
-     * @param value This parameter receives the value that the user has typed.
-     * @return Indicates the outcome of the validation. This is sent to the browser.
-     */
-    public FormValidation doCheckUsername(@QueryParameter String value){
-        if (value.length() == 0){
-            return FormValidation.error("Please enter your username.");
-        }
-        return FormValidation.ok();
-    }
-
-    /**
-     * Performs on-the-fly validation of the form field 'password'.
-     * @param value This parameter receives the value that the user has typed.
-     * @return Indicates the outcome of the validation. This is sent to the browser.
-     */
-    public FormValidation doCheckPassword(@QueryParameter String value){
-        if (value.length() == 0){
-            return FormValidation.error("Please enter your password.");
-        }
-        return FormValidation.ok();
-    }
-
+    
     /**
      * Performs on-the-fly validation of the form field 'password'.
      * @param value This parameter receives the value that the user has typed.
@@ -131,12 +124,34 @@ public final class DescriptorImpl extends PluginDescriptor{
      * Tests the connection using the credentials provided
      * @return validation of the test along with a message
      */
-    public FormValidation doTestConnection(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl)/* throws IOException, ServletException */{
+    public FormValidation doTestConnection(@AncestorInPath Item item,
+            @QueryParameter String hostUrl,
+             @QueryParameter String credentialId)/* throws IOException, ServletException */{
         try{
-            SwampPostBuild.setSwampApi(login(username, password, hostUrl));
+            System.out.println("[INFO]: SWAMP credentialId " + credentialId);
+            System.out.println("[INFO]: SWAMP item " + item);
+            
+            StandardUsernamePasswordCredentials credential = null;
+
+            List<StandardUsernamePasswordCredentials> credentials = CredentialsProvider.lookupCredentials(
+                    StandardUsernamePasswordCredentials.class, item, ACL.SYSTEM, Collections.<DomainRequirement> emptyList());
+
+            IdMatcher matcher = new IdMatcher(credentialId);
+            for (StandardUsernamePasswordCredentials c : credentials) {
+                if (matcher.matches(c)) {
+                    credential = c;
+                }
+            }
+            
+            System.out.println("[INFO]: SWAMP username " + credential.getUsername());
+            System.out.println("[INFO]: SWAMP item " + credential.getPassword().getPlainText());
+            
+            SwampPostBuild.setSwampApi(login(credential.getUsername(), 
+                    credential.getPassword().getPlainText(), 
+                    hostUrl));
             return FormValidation.ok("Success");
         }catch (Exception e){
-            return FormValidation.error("Client error: "+e.getMessage() + ". Check your credentials in the global configuration.");
+            return FormValidation.error("Client error: "+ e.getMessage() + ". Check your credentials in the global configuration.");
         }
     }
 
@@ -160,7 +175,7 @@ public final class DescriptorImpl extends PluginDescriptor{
     public FormValidation doCheckPackageLanguage(@QueryParameter String value){
         try {
         } catch (Exception e) {
-            return FormValidation.error("Could not log in: "+e.getMessage() + ". Check your credentials in the global configuration.");
+            return FormValidation.error("Could not log in: "+ e.getMessage() + ". Check your credentials in the global configuration.");
         }
         String convertedLang = SwampPostBuild.getSwampApi().getPkgTypeString(value, "", "", null);
         if (convertedLang == null){
@@ -240,10 +255,8 @@ public final class DescriptorImpl extends PluginDescriptor{
         try {
             //SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
             //api.login(username, password);
-            Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
-            while(myProjects.hasNext()){
-                Project nextProject = myProjects.next();
-                items.add(nextProject.getFullName(),nextProject.getUUIDString());
+            for (Project project : SwampPostBuild.getSwampApi().getProjectsList()) {
+                items.add(project.getFullName(), project.getUUIDString());
             }
         } catch (Exception e) {
             ListBoxModel error = new ListBoxModel();
@@ -253,16 +266,68 @@ public final class DescriptorImpl extends PluginDescriptor{
         return items;
     }
 
+    public ListBoxModel doFillCredentialIdItems(@AncestorInPath Item item,
+            @QueryParameter String credentialsId) {
+        return new StandardListBoxModel()
+                .withEmptySelection()
+                .withMatching(
+                        CredentialsMatchers.anyOf(
+                                CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class)
+                                ),
+                        CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                                item,
+                                ACL.SYSTEM,
+                                Collections.<DomainRequirement>emptyList())
+                        );
+    }
+
+    /**
+     * Performs on-the-fly validation of the form field 'username'.
+     * @param credentialId This parameter receives the value that the user has typed.
+     * @return Indicates the outcome of the validation. This is sent to the browser.
+     */
+    public FormValidation doCheckCredentialId(@AncestorInPath Item item,
+            @QueryParameter String hostUrl,
+            @QueryParameter String credentialId) {
+        if (item == null) {
+            if (!Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) { 
+                return FormValidation.ok();
+            }
+        } else {
+            if (!item.hasPermission(Item.EXTENDED_READ)
+                    && !item.hasPermission(CredentialsProvider.USE_ITEM)) {
+                return FormValidation.ok(); 
+            }
+        }
+        
+        if (StringUtils.isBlank(credentialId)) {
+            return FormValidation.ok(); 
+        }
+        
+        if (credentialId.startsWith("${") && credentialId.endsWith("}")) {
+            return FormValidation.warning("Cannot validate expression based credentials");
+        }
+        
+        if (CredentialsProvider.listCredentials(
+                StandardUsernamePasswordCredentials.class,
+                item,
+                item instanceof Queue.Task ? Tasks.getAuthenticationOf((Queue.Task)item) : ACL.SYSTEM,
+                Collections.<DomainRequirement>emptyList(),
+                CredentialsMatchers.withId(credentialId)).isEmpty()) {
+            return FormValidation.error("Cannot find currently selected credentials");
+        }
+            return FormValidation.ok();   
+    }
+
     /**
      * Fills the project names list
      * @return a ListBoxModel containing the project names as strings
      */
-    public ListBoxModel doFillDefaultProjectItems(@QueryParameter String username, @QueryParameter String password,  @QueryParameter String hostUrl) {
+    public ListBoxModel doFillDefaultProjectItems(@QueryParameter String hostUrl,
+            @QueryParameter String credentialId) {
         ListBoxModel items = new ListBoxModel();
         try {
             SwampPostBuild.setSwampApi(login(username, password, hostUrl));
-            //SwampApiWrapper api = new SwampApiWrapper(HostType.DEVELOPMENT);
-            //api.login(username, password);
             Iterator<Project> myProjects = SwampPostBuild.getSwampApi().getProjectsList().iterator();
             while(myProjects.hasNext()){
                 Project nextProject = myProjects.next();
@@ -380,6 +445,7 @@ public final class DescriptorImpl extends PluginDescriptor{
      */
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+        System.out.println(formData);
         username = formData.getString("username");
         password = formData.getString("password");
         hostUrl = formData.getString("hostUrl");
@@ -401,7 +467,6 @@ public final class DescriptorImpl extends PluginDescriptor{
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
         SwampApiWrapper api = new SwampApiWrapper();
         Proxy proxy = getProxy(hostUrl);
-        // System.out.println("[INFO]: SWAMP using proxy settings" + proxy);
         api.login(username, password, hostUrl, proxy);
         return api;
     }
@@ -421,12 +486,9 @@ public final class DescriptorImpl extends PluginDescriptor{
         return ICON_URL_PREFIX + "swamp-48x48.png";
     }
 
-    public String getPassword() {
-        return password;
-    }
 
-    public String getUsername() {
-        return username;
+    public String getCredentialId() {
+        return credentialId;
     }
 
     public String getHostUrl() {
@@ -445,6 +507,14 @@ public final class DescriptorImpl extends PluginDescriptor{
     	return backgroundAssess;
     }*/
 
+    public String getUsername(){
+        return username;
+    }
+    
+    public String getPassword(){
+        return password;
+    }
+    
     public boolean getLoginFail(){
         return loginFail;
     }

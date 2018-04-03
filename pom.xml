@@ -38,7 +38,7 @@
     <!-- Other properties you may want to use:
          ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
          ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
-      -->
+    -->
   </properties>
 
   <name>SWAMP Plugin</name>
@@ -67,6 +67,40 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.jvnet.hudson.plugins</groupId>
+      <artifactId>analysis-core</artifactId>
+      <version>1.82</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.jenkins-ci.plugins/credentials -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+      <version>2.1.16</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.2</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.4.4</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpmime</artifactId>
+      <version>4.5.2</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.continuousassurance.swamp</groupId>
       <artifactId>java-cli</artifactId>
       <version>1.4.2</version>
@@ -77,34 +111,6 @@
       <artifactId>scarf-io</artifactId>
       <version>1.2.1</version>
     </dependency>
-
-    <dependency>
-      <groupId>org.jvnet.hudson.plugins</groupId>
-      <artifactId>analysis-core</artifactId>
-      <version>1.82</version>
-    </dependency>
-
- <!-- <dependency> -->
- <!--      <groupId>org.apache.httpcomponents</groupId> -->
- <!--      <artifactId>httpclient</artifactId> -->
- <!--      <version>4.5.2</version> -->
- <!--      <scope>runtime</scope> -->
- <!--    </dependency> -->
-
- <!--    <dependency> -->
- <!--      <groupId>org.apache.httpcomponents</groupId> -->
- <!--      <artifactId>httpcore</artifactId> -->
- <!--      <version>4.4.4</version> -->
- <!--      <scope>runtime</scope> -->
- <!--    </dependency> -->
-
- <!--    <dependency> -->
- <!--      <groupId>org.apache.httpcomponents</groupId> -->
- <!--      <artifactId>httpmime</artifactId> -->
- <!--      <version>4.5.2</version> -->
- <!--      <scope>runtime</scope> -->
- <!--    </dependency> -->
-
 
   </dependencies>
 
@@ -121,11 +127,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-           <relocations>
+              <relocations>
                 <relocation>
                   <pattern>org.apache.httpcomponents</pattern>
                   <shadedPattern>org.apache.shaded.httpcomponents</shadedPattern>
-                  </relocation>
+                </relocation>
               </relocations>
             </configuration>
           </execution>
