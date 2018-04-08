@@ -27,7 +27,7 @@ limitations under the License.
     <f:entry title="SWAMP URL" field="hostUrl">
       <f:textbox default="${instance.defaultHostUrl()}" />
     </f:entry>
-    <f:entry title="${%Credentials}" field="credentialId">
+    <f:entry title="${%SWAMP Credentials}" field="credentialId">
       <c:select/>
     </f:entry>
     <f:validateButton

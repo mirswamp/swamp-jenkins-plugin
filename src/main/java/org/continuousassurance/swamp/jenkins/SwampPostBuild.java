@@ -27,6 +27,7 @@ import hudson.Proc;
 import hudson.PluginWrapper;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractProject;
@@ -57,6 +58,12 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 import org.kohsuke.stapler.QueryParameter;
 import org.continuousassurance.swamp.api.AssessmentRecord;
 import org.continuousassurance.swamp.api.PackageThing;
@@ -85,6 +92,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -130,8 +138,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		return defaults;
 	}
 	
-	private final String username;
-	private final String password;
+	//private final String username;
+	//private final String password;
 	private final String hostUrl;
 	private final String projectUUID;
 	private final String packageName;
@@ -172,8 +180,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
     		String configOptions, String configDirectory, 
     		String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
-        this.username = getDescriptor().getUsername();
-        this.password = getDescriptor().getPassword();
+        //this.username = getDescriptor().getUsername();
+        //this.password = getDescriptor().getPassword();
         this.hostUrl = getDescriptor().getHostUrl();
         this.projectUUID = projectUUID;
         this.assessmentInfo = assessmentInfo;
@@ -270,7 +278,13 @@ public class SwampPostBuild extends HealthAwarePublisher {
         if (api == null){
         	logger.log("Logging in...");
         	try {
-				setSwampApi(DescriptorImpl.login(username, password, hostUrl));
+        	    UsernamePasswordCredentialsImpl credential = (UsernamePasswordCredentialsImpl) CredentialsProvider.findCredentialById(getDescriptor().getCredentialId(),
+        	            StandardUsernamePasswordCredentials.class,
+        	            build,
+        	            Collections.<DomainRequirement> emptyList());
+				setSwampApi(DescriptorImpl.login(credential.getUsername(), 
+				        Secret.toString(credential.getPassword()), 
+				        this.hostUrl));
 			} catch (Exception e) {
 				logger.log("[ERROR] Login failed during build: " + e.getMessage());
 		    	return emptyResult;
@@ -827,18 +841,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     }
     
     //All getters used by Jenkins to save configurations
-    public String getUsername() {
-    	return username;
-    }
-    
-    public String getPassword() {
-		return password;
-	}
-    
-    public String getHostUrl() {
-    	return hostUrl;
-    }
-    
+     
     public String getProjectUUID() {
 		return projectUUID;
 	}
