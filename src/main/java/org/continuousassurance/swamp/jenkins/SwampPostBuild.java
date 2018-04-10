@@ -665,7 +665,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     		buildFile = new FilePath(workspace,(buildDirectory.equals("") ? "" : buildDirectory + "/") + this.buildFile);
     		try {
     			if (!buildFile.exists()){
-    				logger.log("[ERROR] Build file " + buildFile.getRemote() + " not found.");
+    			    log_error(logger, "Build file " + buildFile.getRemote() + " not found.", null);
     				return false;
     			}
 			} catch (IOException | InterruptedException e) {

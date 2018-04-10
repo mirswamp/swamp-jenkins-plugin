@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -123,7 +124,7 @@ public final class DescriptorImpl extends PluginDescriptor{
         try {
             String config_date = config_file.asString();
             DocumentBuilder newDocumentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();        
-            Document parse = newDocumentBuilder.parse(new ByteArrayInputStream(config_date.getBytes()));
+            Document parse = newDocumentBuilder.parse(new ByteArrayInputStream(config_date.getBytes(Charset.defaultCharset())));
             NodeList node_list = parse.getFirstChild().getChildNodes();
             boolean has_username = false;
             boolean has_password = false;
