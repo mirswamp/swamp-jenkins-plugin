@@ -35,7 +35,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 //import org.continuousassurance.swamp.Messages;
 import org.continuousassurance.swamp.api.Project;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
@@ -119,9 +118,10 @@ public final class DescriptorImpl extends PluginDescriptor{
         return credential;
     }
 
-    public boolean hasRawCredentials(String config_date) {
+    public static boolean hasRawCredentials(XmlFile config_file) {
         
         try {
+            String config_date = config_file.asString();
             DocumentBuilder newDocumentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();        
             Document parse = newDocumentBuilder.parse(new ByteArrayInputStream(config_date.getBytes()));
             NodeList node_list = parse.getFirstChild().getChildNodes();
@@ -160,18 +160,12 @@ public final class DescriptorImpl extends PluginDescriptor{
         super(SwampPostBuild.class);
         load();
         XmlFile config_file = getConfigFile();
-        if (config_file.exists()) {
-            try {
-                if (hasRawCredentials(config_file.asString())) {
-                    //config_file.delete();
-                    save();
-                }
-                
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
+        if (config_file.exists() && hasRawCredentials(config_file)) {
+            //config_file.delete();
+            save();
+            System.out.println("\n[WARNING]: SWAMP plugin requires re-configuration."
+                    + "\nConfigure the plugin @ 'Manage Jenkins >> Configure System >> SWAMP'\n");
+         }
         
         try {
             StandardUsernamePasswordCredentials credentials = getCredentials(null, credentialId);
@@ -200,15 +194,8 @@ public final class DescriptorImpl extends PluginDescriptor{
         
         if (value.length() == 0){
             return FormValidation.error("Please enter a host url.");
-        }else {
-            String[] schemes = {"http","https"};
-            UrlValidator urlValidator = new UrlValidator(schemes);
-            if (urlValidator.isValid(value)) {
-                return FormValidation.ok();
-            } else {
-                return FormValidation.ok(String.format("URK '%s' is invalid", value));
-            }
         }
+        return FormValidation.ok();
     }
 
     public ListBoxModel doFillCredentialIdItems(@AncestorInPath Item item,
@@ -282,8 +269,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             if (credentials != null) {
                 if (SwampPostBuild.getSwampApi() == null) {
                     SwampPostBuild.setSwampApi(login(credentials.getUsername(), 
-                            //Secret.toString(credentials.getPassword()),
-                            credentials.getPassword().getPlainText(),
+                            Secret.toString(credentials.getPassword()),
                             hostUrl));
                 }
                 for (Project project : SwampPostBuild.getSwampApi().getProjectsList()) {

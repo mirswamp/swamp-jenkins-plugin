@@ -212,6 +212,15 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	this.cleanCommand = cleanCommand;
     }
     
+    public void log_error(final PluginLogger logger, String error_msg, String error_remedy) {
+        logger.log("[ERROR] ------------------------------------------------------------------------");
+        logger.log("[ERROR] " + error_msg);
+        if (error_remedy != null) {
+            logger.log("[ERROR] " + error_remedy);
+        }
+        logger.log("[ERROR] ------------------------------------------------------------------------");    
+    }
+    
     @Override
     public BuildResult perform(final Run<?, ?> build, final FilePath workspace, final PluginLogger logger) throws IOException, InterruptedException {
     	SwampResult emptyResult = null;
@@ -219,13 +228,31 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	Result buildResult = build.getResult(); 
     	if (buildResult == null ||  buildResult.isWorseOrEqualTo(Result.FAILURE)){
     		if (getDescriptor().getVerbose()){
-    			logger.log("[ERROR] Build failed: no point in sending to the SWAMP");
+    		    log_error(logger, "Build failed: no point in sending to the SWAMP", null);
     		}
     		return emptyResult;
     	}
     	//If the login failed, exit
     	if (getDescriptor().getLoginFail()){
-    		logger.log("[ERROR] Login failed: check your credentials in the global configuration");
+    	    
+    	    if (getDescriptor().getHostUrl() == null || getDescriptor().getHostUrl().isEmpty()) {
+                log_error(logger, 
+                        "SWAMP URL missing",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+
+                return emptyResult;  
+            }
+    	    
+    	    if (getDescriptor().getCredentialId() == null || getDescriptor().getCredentialId().isEmpty()) {
+    	        log_error(logger, 
+                        "SWAMP credentials missing",
+    	                "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                return emptyResult;  
+            }
+    	    
+    	    log_error(logger, 
+    	            "Login failed",
+    	            "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
     		return emptyResult;
     	}
     	//Error check build info
@@ -251,7 +278,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			buildVars = build.getCharacteristicEnvVars();
 			if (!buildVars.containsKey("GIT_COMMIT")){
 				uploadVersion = uploadVersion.replace("$git", "");
-				logger.log("[ERROR] Git commit not available. Replacing with blank string.");
+				logger.log("[WARNING] Git commit not available. Replacing with blank string.");
 			}else{
 				uploadVersion = uploadVersion.replace("$git", buildVars.get("GIT_COMMIT"));
 			}
@@ -261,7 +288,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			buildVars = build.getCharacteristicEnvVars();
 			if (!buildVars.containsKey("SVN_REVISION")){
 				uploadVersion = uploadVersion.replace("$svn", "");
-				logger.log("[ERROR] Subversion commit not available. Replacing with blank string.");
+				logger.log("[WARNING] Subversion commit not available. Replacing with blank string.");
 			}else{
 				uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
 			}
@@ -275,7 +302,14 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
     	
     	//Login to the SWAMP if needed
-        if (api == null){
+        if (getSwampApi() == null){
+            if (getDescriptor().getCredentialId() == null || getDescriptor().getCredentialId().isEmpty() ) {
+                log_error(logger, 
+                        "SWAMP credentials missing",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                return emptyResult;  
+            }
+            
         	logger.log("Logging in...");
         	try {
         	    UsernamePasswordCredentialsImpl credential = (UsernamePasswordCredentialsImpl) CredentialsProvider.findCredentialById(getDescriptor().getCredentialId(),
@@ -286,7 +320,9 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				        Secret.toString(credential.getPassword()), 
 				        this.hostUrl));
 			} catch (Exception e) {
-				logger.log("[ERROR] Login failed during build: " + e.getMessage());
+			    log_error(logger,
+			            "Login failed during build",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
 		    	return emptyResult;
 			}
         }
@@ -354,10 +390,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
     			logger.log("Archive created at " + archivePath.getRemote());
 			}
 		} catch (IOException e) {
-			logger.log("[ERROR] Archive creation failed: " + e.getMessage());
+		    log_error(logger, "Archive creation failed: " + e.getMessage(), null);
 			return emptyResult;
 		} catch (InterruptedException e) {
-			logger.log("[ERROR] Archive creation interrupted: " + e.getMessage());
+		    log_error(logger, "Archive creation interrupted: " + e.getMessage(), null);
 			return emptyResult;
 		}
 		
@@ -381,13 +417,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("Config exists - " + new File(configPath.getRemote()).exists());
 			logger.log("Archive exists - " + new File(archivePath.getRemote()).exists());
 		} catch (InvalidIdentifierException e) {
-			logger.log("[ERROR] Could not upload Package: "
-					+ e.getMessage());
+		    log_error(logger, "Could not upload Package: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		} catch (HTTPException e){
-			logger.log("[ERROR] Could not upload Package: "
-						+ e.getMessage());
+		    log_error(logger, "Could not upload Package: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		}
@@ -433,7 +467,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 						api.getProject(projectUUID), 
 						api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
 			} catch (Exception e) {
-				logger.log("[ERROR] Assessment failed: " + e.getMessage());
+			    log_error(logger, "Assessment failed: " + e.getMessage(), null);
 			}
 		}
 		
@@ -448,7 +482,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		try {
 			outputPath.mkdirs();
 		} catch (IOException | InterruptedException e) {
-			logger.log("[ERROR] Could not create output directory: " + e.getMessage());
+		    log_error(logger, "Could not create output directory: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 		}
 		
@@ -492,7 +526,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				}
 				
 			} catch (InterruptedException e) {
-				logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
+			    log_error(logger, "Waiting for status interrupted: " + e.getMessage(), null);
 				//build.setResult(Result.FAILURE);
 				return emptyResult;
 			} catch (Exception e) {
@@ -621,10 +655,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
         				return true;
         			}
     			} catch (IOException | InterruptedException e) {
-    				logger.log("[ERROR] Could not verify build file's existance: " + e.getMessage());
+    			    log_error(logger, "Could not verify build file's existance: " + e.getMessage(), null);
     			}
     		}
-			logger.log("[ERROR] Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"));
+    		log_error(logger, "Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + 
+    		workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"), null);
 			return false;
     	}else{
     		buildFile = new FilePath(workspace,(buildDirectory.equals("") ? "" : buildDirectory + "/") + this.buildFile);
