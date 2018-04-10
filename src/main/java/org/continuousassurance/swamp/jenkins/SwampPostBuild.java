@@ -18,72 +18,12 @@
   */
 
 package org.continuousassurance.swamp.jenkins;
-import hudson.EnvVars;
-import hudson.Launcher;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher.ProcStarter;
-import hudson.Proc;
-import hudson.PluginWrapper;
-import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import hudson.util.Secret;
-import hudson.matrix.MatrixAggregator;
-import hudson.matrix.MatrixBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Run;
-import hudson.model.Action;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.plugins.analysis.core.BuildResult;
-import hudson.plugins.analysis.core.FilesParser;
-import hudson.plugins.analysis.core.HealthAwarePublisher;
-import hudson.plugins.analysis.core.ParserResult;
-import hudson.plugins.analysis.core.PluginDescriptor;
-import hudson.plugins.analysis.util.PluginLogger;
-import hudson.plugins.analysis.views.DetailFactory;
-import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Publisher;
-import hudson.tasks.Recorder;
-import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildStep;
-
-import org.apache.maven.plugin.MojoExecution;
-
-import net.sf.json.JSONObject;
-
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
-import org.kohsuke.stapler.QueryParameter;
-import org.continuousassurance.swamp.api.AssessmentRecord;
-import org.continuousassurance.swamp.api.PackageThing;
-import org.continuousassurance.swamp.api.PackageVersion;
-import org.continuousassurance.swamp.api.Platform;
-import org.continuousassurance.swamp.api.Project;
-import org.continuousassurance.swamp.api.Tool;
-import org.continuousassurance.swamp.cli.SwampApiWrapper;
-import org.continuousassurance.swamp.cli.util.AssessmentStatus;
-import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
-import org.continuousassurance.swamp.cli.util.AssessmentStatus;
-import org.continuousassurance.swamp.session.HTTPException;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -97,6 +37,38 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.commons.codec.binary.Hex;
+import org.continuousassurance.swamp.api.AssessmentRecord;
+import org.continuousassurance.swamp.api.PackageThing;
+import org.continuousassurance.swamp.api.Project;
+import org.continuousassurance.swamp.cli.SwampApiWrapper;
+import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
+import org.continuousassurance.swamp.cli.util.AssessmentStatus;
+import org.continuousassurance.swamp.session.HTTPException;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+
+import hudson.EnvVars;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.PluginWrapper;
+import hudson.matrix.MatrixAggregator;
+import hudson.matrix.MatrixBuild;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.plugins.analysis.core.BuildResult;
+import hudson.plugins.analysis.core.FilesParser;
+import hudson.plugins.analysis.core.HealthAwarePublisher;
+import hudson.plugins.analysis.core.ParserResult;
+import hudson.plugins.analysis.util.PluginLogger;
+import hudson.tasks.BuildStepMonitor;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
 
 public class SwampPostBuild extends HealthAwarePublisher {
 	
@@ -312,13 +284,22 @@ public class SwampPostBuild extends HealthAwarePublisher {
             
         	logger.log("Logging in...");
         	try {
-        	    UsernamePasswordCredentialsImpl credential = (UsernamePasswordCredentialsImpl) CredentialsProvider.findCredentialById(getDescriptor().getCredentialId(),
+        	    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        	    StandardUsernamePasswordCredentials credential =  CredentialsProvider.findCredentialById(getDescriptor().getCredentialId(),
         	            StandardUsernamePasswordCredentials.class,
         	            build,
         	            Collections.<DomainRequirement> emptyList());
-				setSwampApi(DescriptorImpl.login(credential.getUsername(), 
-				        Secret.toString(credential.getPassword()), 
-				        this.hostUrl));
+        	    
+        	    if (credential != null) {
+    				setSwampApi(DescriptorImpl.login(credential.getUsername(), 
+    				        Secret.toString(credential.getPassword()), 
+    				        this.hostUrl));
+        	    }else {
+        	        log_error(logger,
+        	                "SWAMP credentials missing",
+                            "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                    return emptyResult;
+        	    }
 			} catch (Exception e) {
 			    log_error(logger,
 			            "Login failed during build",

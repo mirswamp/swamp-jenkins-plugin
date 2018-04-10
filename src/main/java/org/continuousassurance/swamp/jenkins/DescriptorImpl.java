@@ -205,7 +205,7 @@ public final class DescriptorImpl extends PluginDescriptor{
         StandardListBoxModel result = new StandardListBoxModel();
        
         if (item == null) {
-            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
+            if (!Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)) {
                 return result.includeCurrentValue(credentialsId);
             }
         } else if (!item.hasPermission(Item.EXTENDED_READ)
