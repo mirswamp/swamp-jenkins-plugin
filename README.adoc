@@ -90,9 +90,9 @@ If you are using an SiB instance that uses a _self-signed_ SSL/TLS certificate t
 . Access the SiB from the web-browser and download the SiB's self-signed certificate by following these instruction here:
 https://www.thesslstore.com/blog/how-to-view-ssl-certificate-details-in-chrome-56/
 
-. Run the folloing commands to add the self-signed certificate to the Java Installation's keystore:
+. Run the following commands to add the self-signed certificate to the Java installation's keystore:
 --
-a. Change the present working directory to your Java installtion directory + `jre/lib/security/`.
+a. Change the present working directory to your Java installation directory + `jre/lib/security/`.
 +
 .................
    cd $JAVA_HOME/jre/lib/security
