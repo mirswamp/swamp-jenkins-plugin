@@ -69,6 +69,8 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import javax.net.ssl.SSLHandshakeException;
+
 
 /**
  * Descriptor for the class {@link SwampPostBuild}. Used as a singleton. The
@@ -146,7 +148,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             
         } catch (ParserConfigurationException | SAXException | IOException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             
         }
         return false;
@@ -182,6 +184,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             loginFail = false;
         } catch (Exception e) {
             System.out.println("\n[ERROR]: Login to SWAMP failed! " + e.getMessage() + "\nCheck your credentials in the Global Configurations page.\n");
+            e.printStackTrace(System.out);
             loginFail = true;
         }
     }
@@ -278,6 +281,7 @@ public final class DescriptorImpl extends PluginDescriptor{
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace(System.out);
             ListBoxModel error = new ListBoxModel();
             error.add("","null");
             return error;
@@ -319,8 +323,12 @@ public final class DescriptorImpl extends PluginDescriptor{
             }else {
                 return FormValidation.error("No credentials to authenticate");
             }
-        }catch (Exception e){
-            return FormValidation.error("Client error: "+ e.getMessage() + 
+        }catch (SSLHandshakeException e) {
+            e.printStackTrace(System.out);
+            return FormValidation.error("\n[ERROR]: Server has a self-signed certificate");
+        }catch (Exception e){       
+            e.printStackTrace(System.out);
+            return FormValidation.error("\n[ERROR]: "+ e.getMessage() + 
                     ". Check your credentials in the global configuration.");
         }
     }
@@ -429,6 +437,7 @@ public final class DescriptorImpl extends PluginDescriptor{
                 items.add(project.getFullName(), project.getUUIDString());
             }
         } catch (Exception e) {
+            e.printStackTrace(System.out);
             ListBoxModel error = new ListBoxModel();
             error.add("ERROR: could not log in. Check your credentials in the global configuration.","null");
             return error;
@@ -449,7 +458,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             try {
                 jobName = URLDecoder.decode(jobName.substring(0,jobName.indexOf('/')), "UTF-8");
             } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.out);
             }
             return jobName;
         }
@@ -483,7 +492,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             url = new URL(hostUrl);
         } catch (MalformedURLException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             return proxy;
         }
 
@@ -544,6 +553,7 @@ public final class DescriptorImpl extends PluginDescriptor{
             loginFail = false;
         } catch (Exception e) {
             System.out.println("[ERROR]: Login to SWAMP failed! " + e.getMessage());
+            e.printStackTrace(System.out);
             loginFail = true;
         }
         save();
@@ -553,7 +563,7 @@ public final class DescriptorImpl extends PluginDescriptor{
     static SwampApiWrapper login (String username, String password, String hostUrl) throws Exception {
         SwampApiWrapper api = new SwampApiWrapper();
         Proxy proxy = getProxy(hostUrl);
-        api.login(username, password, hostUrl, proxy);
+        api.login(username, password, hostUrl, proxy, null);
         return api;
     }
 
