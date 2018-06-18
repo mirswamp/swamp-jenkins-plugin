@@ -23,7 +23,7 @@
   </parent>
   <groupId>org.continuousassurance.swamp.jenkins</groupId>
   <artifactId>swamp</artifactId>
-  <version>1.2.1-SNAPSHOT</version>
+  <version>1.2.1</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -155,6 +155,6 @@
     <connection>scm:git:ssh://github.com/jenkinsci/swamp-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/swamp-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/swamp-plugin</url>
-    <tag>HEAD</tag>
+    <tag>swamp-1.2.1</tag>
   </scm>
 </project>
