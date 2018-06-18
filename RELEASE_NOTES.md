@@ -1,4 +1,9 @@
 ----------------------------
+SWAMP Jenkins Plugin version release/1.5.2 (Mon Jun 18 10:29:24 CDT 2018)
+----------------------------
+- Using java-api-1.5.2, which converts SWAMP web api server's URI to UR
+
+----------------------------
 SWAMP Jenkins Plugin version release/1.2.0 (Tue Apr 10 10:15:38 CST 2017)
 ----------------------------
 Uses Credentials API to store SWAMP credentials in Jenkins
