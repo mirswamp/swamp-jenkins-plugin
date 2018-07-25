@@ -1,4 +1,13 @@
 ----------------------------
+SWAMP Jenkins Plugin version release/1.5.3 (Wed Jul 25 12:16:02 CDT 2018)
+----------------------------
+- Using Java CLI 1.5.3
+
+- Cookie policy set to CookieSpecs.STANDAND. This fixes failures with SiB instances that are not current, yet max-age is vaild.
+
+- Removed code for RWS server, which now is removed.
+
+----------------------------
 SWAMP Jenkins Plugin version release/1.5.2 (Mon Jun 18 10:29:24 CDT 2018)
 ----------------------------
 - Using java-api-1.5.2, which converts SWAMP web api server's URI to UR
