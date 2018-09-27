@@ -1,5 +1,12 @@
 ----------------------------
-SWAMP Jenkins Plugin version release/1.5.3 (Wed Jul 25 12:16:02 CDT 2018)
+SWAMP Jenkins Plugin version release/1.2.3 (Thu Sep 27 16:04:03 CDT 2018)
+----------------------------
+- Using Java CLI 1.5.6
+
+- Fixed bug related to tools without permissions.
+
+----------------------------
+SWAMP Jenkins Plugin version release/1.2.2 (Wed Jul 25 12:16:02 CDT 2018)
 ----------------------------
 - Using Java CLI 1.5.3
 

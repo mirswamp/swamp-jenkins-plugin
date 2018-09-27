@@ -434,19 +434,21 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			}
 		}
 		
-		String[] assessmentUUIDs;
+		ArrayList<String> assessmentUUIDs = new ArrayList<String>();
 		//Run the assessments
-		assessmentUUIDs = new String[assessmentsToRun.size()];
-		for (int i = 0; i < assessmentUUIDs.length;i++){
+		for (int i = 0; i < assessmentsToRun.size();i++){
 			try {
 				logger.log("Running Assessment (package: " + packageName + "-" + uploadVersion + 
 						", tool: " + assessmentsToRun.get(i).getToolName(api,projectUUID) + 
 						", platform: " + assessmentsToRun.get(i).getPlatformVersionName(api) + ")");		
 				
-				assessmentUUIDs[i] = api.runAssessment(api.getPackageVersion(packageUUID, projectUUID), 
-						api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID), 
-						api.getProject(projectUUID), 
-						api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
+				String arun_uuid = api.runAssessment(api.getPackageVersion(packageUUID, projectUUID), 
+				        api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID), 
+				        api.getProject(projectUUID), 
+				        api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
+				
+				assessmentUUIDs.add(arun_uuid);
+				
 			} catch (Exception e) {
 			    log_error(logger, "Assessment failed: " + e.getMessage(), null);
 			}
@@ -472,12 +474,12 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			assessment_done[i] = false;
 		}
 		int all_finished = 0;
-		while(all_finished < assessmentUUIDs.length) {
+		while(all_finished < assessmentUUIDs.size()) {
 			try {
 				Thread.sleep(30000);
 				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectUUID)) {
-					for (int i = 0; i < assessmentUUIDs.length; i++){
-						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i]) 
+					for (int i = 0; i < assessmentUUIDs.size(); i++){
+						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs.get(i)) 
 								&& assessment_done[i] == false){
 							if (executionRecord.getAssessmentResultUUID().equals("null")) {
 								// Assessment still in progress
