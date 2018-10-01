@@ -1,4 +1,9 @@
 ----------------------------
+SWAMP Jenkins Plugin version release/1.2.3 (Mon Oct  1 17:11:12 CDT 2018)
+----------------------------
+- If the user does not have permisson for a tool, the whole assessment fails  
+
+----------------------------
 SWAMP Jenkins Plugin version release/1.2.3 (Thu Sep 27 16:04:03 CDT 2018)
 ----------------------------
 - Using Java CLI 1.5.6

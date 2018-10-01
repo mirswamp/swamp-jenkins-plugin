@@ -42,6 +42,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.continuousassurance.swamp.api.AssessmentRecord;
 import org.continuousassurance.swamp.api.PackageThing;
 import org.continuousassurance.swamp.api.Project;
+import org.continuousassurance.swamp.api.Tool;
 import org.continuousassurance.swamp.cli.SwampApiWrapper;
 import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
 import org.continuousassurance.swamp.cli.util.AssessmentStatus;
@@ -72,16 +73,41 @@ import jenkins.model.Jenkins;
 
 public class SwampPostBuild extends HealthAwarePublisher {
 	
-	static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
-		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion","CSS","D","Datalog","Erlang",
-		"Forth","Fortran","Haskell","HTML",*/"Java",/*"JavaScript","LISP","Lua","ML",
-		"OCaml","Objective-C","PHP","Pascal","Perl","Prolog","Python",*/"Python-2","Python-3",
-		/*"Rexx",*/"Ruby",/*"sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"*/};
-		
-	static final String[] VALID_BUILD_SYSTEMS = {"android+ant","android+ant+ivy","android+gradle","android+maven",
-		"ant","ant+ivy","cmake+make","configure+make","gradle","java-bytecode","make","maven",
-		"no-build","none","other","python-distutils"};
-	
+    /*
+	static final String[] VALID_LANGUAGES = {"ActionScript","Ada","AppleScript","Assembly",
+		"Bash","C","C#","C++","Cobol","ColdFusion","CSS","D","Datalog","Erlang",
+		"Forth","Fortran","Haskell","HTML","Java","JavaScript","LISP","Lua","ML",
+		"OCaml","Objective-C","PHP","Pascal","Perl","Prolog","Python","Python-2","Python-3",
+		"Rexx","Ruby","sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"};
+	/*/
+    static final String[] VALID_LANGUAGES = {
+            "C", 
+            "C++",
+            "Java",
+            "Python-2",
+            "Python-3",
+            "Ruby"
+    };
+
+    static final String[] VALID_BUILD_SYSTEMS = {
+            "android+ant",
+            "android+ant+ivy",
+            "android+gradle",
+            "android+maven",
+            "ant",
+            "ant+ivy",
+            "cmake+make",
+            "configure+make",
+            "gradle",
+            "java-bytecode",
+            "make",
+            "maven",
+            "no-build",
+            "none",
+            "other",
+            "python-distutils"
+    };
+
 	static HashMap<String,String> setupDefaultBuildFiles () {
 		HashMap<String,String> defaults = new HashMap<String,String>();
 		defaults.put("ant", "build.xml");
@@ -432,6 +458,24 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				AssessmentInfo newAssess = new AssessmentInfo(nextTool,nextAssess.getPlatformVersionUUID());
 				assessmentsToRun.add(newAssess);
 			}
+		}
+		
+		ArrayList<String> tools_without_permissions = new ArrayList<String>();
+		//checking for tool permissions
+		for (int i = 0; i < assessmentsToRun.size(); i++) {
+		    Tool tool = api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID); 
+            
+		    if(!api.hasToolPermission(tool.getUUIDString(), 
+		            projectUUID, 
+		            api.getPackageVersion(packageUUID, projectUUID).getPackageThing().getUUIDString())) {
+		        tools_without_permissions.add(tool.getName());
+		    }
+		}
+		
+		if (!tools_without_permissions.isEmpty()) {
+		    log_error(logger, "No permissions to use the tools: " + tools_without_permissions + 
+		            "\nUnselect these tools OR get permissons to use them", null);
+		    return emptyResult;
 		}
 		
 		ArrayList<String> assessmentUUIDs = new ArrayList<String>();
