@@ -1,6 +1,6 @@
 :plugin-ver: 1.2.0
 = SWAMP Jenkins Plugin
-Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+Jared Sweetland, Vamshi Basupalli, James A. Kupsch, Josef T. Burger
 {plugin-ver} {docdatetime}
 :toc:
 :numbered:
