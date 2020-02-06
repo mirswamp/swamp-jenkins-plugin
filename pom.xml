@@ -13,6 +13,11 @@
       <name>Vamshi Basupalli</name>
       <email>swamp-jenkins-plugin@cs.wisc.edu</email>
     </developer>
+    <developer>
+      <id>bigtrak</id>
+      <name>Bolo -- Josef T. Burger</name>
+      <email>bolo@cs.wisc.edu</email>
+    </developer>
   </developers>
 
   <parent>
