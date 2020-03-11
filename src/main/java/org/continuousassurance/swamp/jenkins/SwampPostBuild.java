@@ -18,65 +18,12 @@
   */
 
 package org.continuousassurance.swamp.jenkins;
-import hudson.EnvVars;
-import hudson.Launcher;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher.ProcStarter;
-import hudson.Proc;
-import hudson.PluginWrapper;
-import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import hudson.matrix.MatrixAggregator;
-import hudson.matrix.MatrixBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Run;
-import hudson.model.Action;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.plugins.analysis.core.BuildResult;
-import hudson.plugins.analysis.core.FilesParser;
-import hudson.plugins.analysis.core.HealthAwarePublisher;
-import hudson.plugins.analysis.core.ParserResult;
-import hudson.plugins.analysis.core.PluginDescriptor;
-import hudson.plugins.analysis.util.PluginLogger;
-import hudson.plugins.analysis.views.DetailFactory;
-import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Publisher;
-import hudson.tasks.Recorder;
-import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildStep;
-
-import org.apache.maven.plugin.MojoExecution;
-
-import net.sf.json.JSONObject;
-
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.QueryParameter;
-import org.continuousassurance.swamp.api.AssessmentRecord;
-import org.continuousassurance.swamp.api.PackageThing;
-import org.continuousassurance.swamp.api.PackageVersion;
-import org.continuousassurance.swamp.api.Platform;
-import org.continuousassurance.swamp.api.Project;
-import org.continuousassurance.swamp.api.Tool;
-import org.continuousassurance.swamp.cli.SwampApiWrapper;
-import org.continuousassurance.swamp.cli.util.AssessmentStatus;
-import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
-import org.continuousassurance.swamp.cli.util.AssessmentStatus;
-import org.continuousassurance.swamp.session.HTTPException;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -85,23 +32,82 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.codec.binary.Hex;
+import org.continuousassurance.swamp.api.AssessmentRecord;
+import org.continuousassurance.swamp.api.PackageThing;
+import org.continuousassurance.swamp.api.Project;
+import org.continuousassurance.swamp.api.Tool;
+import org.continuousassurance.swamp.cli.SwampApiWrapper;
+import org.continuousassurance.swamp.cli.exceptions.InvalidIdentifierException;
+import org.continuousassurance.swamp.cli.util.AssessmentStatus;
+import org.continuousassurance.swamp.session.HTTPException;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+
+import hudson.EnvVars;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.PluginWrapper;
+import hudson.matrix.MatrixAggregator;
+import hudson.matrix.MatrixBuild;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.plugins.analysis.core.BuildResult;
+import hudson.plugins.analysis.core.FilesParser;
+import hudson.plugins.analysis.core.HealthAwarePublisher;
+import hudson.plugins.analysis.core.ParserResult;
+import hudson.plugins.analysis.util.PluginLogger;
+import hudson.tasks.BuildStepMonitor;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
+
 public class SwampPostBuild extends HealthAwarePublisher {
 	
-	static final String[] VALID_LANGUAGES = {/*"ActionScript","Ada","AppleScript","Assembly",
-		"Bash",*/"C",/*"C#",*/"C++",/*"Cobol","ColdFusion","CSS","D","Datalog","Erlang",
-		"Forth","Fortran","Haskell","HTML",*/"Java",/*"JavaScript","LISP","Lua","ML",
-		"OCaml","Objective-C","PHP","Pascal","Perl","Prolog","Python",*/"Python-2","Python-3",
-		/*"Rexx",*/"Ruby",/*"sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"*/};
-		
-	static final String[] VALID_BUILD_SYSTEMS = {"android+ant","android+ant+ivy","android+gradle","android+maven",
-		"ant","ant+ivy","cmake+make","configure+make","gradle","java-bytecode","make","maven",
-		"no-build","none","other","python-distutils"};
-	
+    /*
+	static final String[] VALID_LANGUAGES = {"ActionScript","Ada","AppleScript","Assembly",
+		"Bash","C","C#","C++","Cobol","ColdFusion","CSS","D","Datalog","Erlang",
+		"Forth","Fortran","Haskell","HTML","Java","JavaScript","LISP","Lua","ML",
+		"OCaml","Objective-C","PHP","Pascal","Perl","Prolog","Python","Python-2","Python-3",
+		"Rexx","Ruby","sh","SQL","Scala","Scheme","SmallTalk","Swift","Tcl","tcsh","Visual-Basic"};
+	/*/
+    static final String[] VALID_LANGUAGES = {
+            "C", 
+            "C++",
+            "Java",
+            "Python-2",
+            "Python-3",
+            "Ruby"
+    };
+
+    static final String[] VALID_BUILD_SYSTEMS = {
+            "android+ant",
+            "android+ant+ivy",
+            "android+gradle",
+            "android+maven",
+            "ant",
+            "ant+ivy",
+            "cmake+make",
+            "configure+make",
+            "gradle",
+            "java-bytecode",
+            "make",
+            "maven",
+            "no-build",
+            "none",
+            "other",
+            "python-distutils"
+    };
+
 	static HashMap<String,String> setupDefaultBuildFiles () {
 		HashMap<String,String> defaults = new HashMap<String,String>();
 		defaults.put("ant", "build.xml");
@@ -130,8 +136,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		return defaults;
 	}
 	
-	private final String username;
-	private final String password;
+	//private final String username;
+	//private final String password;
 	private final String hostUrl;
 	private final String projectUUID;
 	private final String packageName;
@@ -172,8 +178,8 @@ public class SwampPostBuild extends HealthAwarePublisher {
     		String configOptions, String configDirectory, 
     		String outputDir, /*boolean sendEmail, String emailAddr,*/ String cleanCommand) {
         super("SWAMP");
-        this.username = getDescriptor().getUsername();
-        this.password = getDescriptor().getPassword();
+        //this.username = getDescriptor().getUsername();
+        //this.password = getDescriptor().getPassword();
         this.hostUrl = getDescriptor().getHostUrl();
         this.projectUUID = projectUUID;
         this.assessmentInfo = assessmentInfo;
@@ -204,6 +210,15 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	this.cleanCommand = cleanCommand;
     }
     
+    public void log_error(final PluginLogger logger, String error_msg, String error_remedy) {
+        logger.log("[ERROR] ------------------------------------------------------------------------");
+        logger.log("[ERROR] " + error_msg);
+        if (error_remedy != null) {
+            logger.log("[ERROR] " + error_remedy);
+        }
+        logger.log("[ERROR] ------------------------------------------------------------------------");    
+    }
+    
     @Override
     public BuildResult perform(final Run<?, ?> build, final FilePath workspace, final PluginLogger logger) throws IOException, InterruptedException {
     	SwampResult emptyResult = null;
@@ -211,13 +226,31 @@ public class SwampPostBuild extends HealthAwarePublisher {
     	Result buildResult = build.getResult(); 
     	if (buildResult == null ||  buildResult.isWorseOrEqualTo(Result.FAILURE)){
     		if (getDescriptor().getVerbose()){
-    			logger.log("[ERROR] Build failed: no point in sending to the SWAMP");
+    		    log_error(logger, "Build failed: no point in sending to the SWAMP", null);
     		}
     		return emptyResult;
     	}
     	//If the login failed, exit
     	if (getDescriptor().getLoginFail()){
-    		logger.log("[ERROR] Login failed: check your credentials in the global configuration");
+    	    
+    	    if (getDescriptor().getHostUrl() == null || getDescriptor().getHostUrl().isEmpty()) {
+                log_error(logger, 
+                        "SWAMP URL missing",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+
+                return emptyResult;  
+            }
+    	    
+    	    if (getDescriptor().getCredentialId() == null || getDescriptor().getCredentialId().isEmpty()) {
+    	        log_error(logger, 
+                        "SWAMP credentials missing",
+    	                "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                return emptyResult;  
+            }
+    	    
+    	    log_error(logger, 
+    	            "Login failed",
+    	            "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
     		return emptyResult;
     	}
     	//Error check build info
@@ -243,7 +276,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			buildVars = build.getCharacteristicEnvVars();
 			if (!buildVars.containsKey("GIT_COMMIT")){
 				uploadVersion = uploadVersion.replace("$git", "");
-				logger.log("[ERROR] Git commit not available. Replacing with blank string.");
+				logger.log("[WARNING] Git commit not available. Replacing with blank string.");
 			}else{
 				uploadVersion = uploadVersion.replace("$git", buildVars.get("GIT_COMMIT"));
 			}
@@ -253,7 +286,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			buildVars = build.getCharacteristicEnvVars();
 			if (!buildVars.containsKey("SVN_REVISION")){
 				uploadVersion = uploadVersion.replace("$svn", "");
-				logger.log("[ERROR] Subversion commit not available. Replacing with blank string.");
+				logger.log("[WARNING] Subversion commit not available. Replacing with blank string.");
 			}else{
 				uploadVersion = uploadVersion.replace("$svn", buildVars.get("SVN_REVISION"));
 			}
@@ -267,12 +300,36 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		//String swampPluginVersion = Jenkins.getInstance().pluginManager.getPlugin("Swamp").getVersion();
     	
     	//Login to the SWAMP if needed
-        if (api == null){
+        if (getSwampApi() == null){
+            if (getDescriptor().getCredentialId() == null || getDescriptor().getCredentialId().isEmpty() ) {
+                log_error(logger, 
+                        "SWAMP credentials missing",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                return emptyResult;  
+            }
+            
         	logger.log("Logging in...");
         	try {
-				setSwampApi(DescriptorImpl.login(username, password, hostUrl));
+        	    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        	    StandardUsernamePasswordCredentials credential =  CredentialsProvider.findCredentialById(getDescriptor().getCredentialId(),
+        	            StandardUsernamePasswordCredentials.class,
+        	            build,
+        	            Collections.<DomainRequirement> emptyList());
+        	    
+        	    if (credential != null) {
+    				setSwampApi(DescriptorImpl.login(credential.getUsername(), 
+    				        Secret.toString(credential.getPassword()), 
+    				        this.hostUrl));
+        	    }else {
+        	        log_error(logger,
+        	                "SWAMP credentials missing",
+                            "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
+                    return emptyResult;
+        	    }
 			} catch (Exception e) {
-				logger.log("[ERROR] Login failed during build: " + e.getMessage());
+			    log_error(logger,
+			            "Login failed during build",
+                        "Check SWAMP configuration @ 'Manage Jenkins >> Configure System >> SWAMP'");
 		    	return emptyResult;
 			}
         }
@@ -340,10 +397,10 @@ public class SwampPostBuild extends HealthAwarePublisher {
     			logger.log("Archive created at " + archivePath.getRemote());
 			}
 		} catch (IOException e) {
-			logger.log("[ERROR] Archive creation failed: " + e.getMessage());
+		    log_error(logger, "Archive creation failed: " + e.getMessage(), null);
 			return emptyResult;
 		} catch (InterruptedException e) {
-			logger.log("[ERROR] Archive creation interrupted: " + e.getMessage());
+		    log_error(logger, "Archive creation interrupted: " + e.getMessage(), null);
 			return emptyResult;
 		}
 		
@@ -367,13 +424,11 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			logger.log("Config exists - " + new File(configPath.getRemote()).exists());
 			logger.log("Archive exists - " + new File(archivePath.getRemote()).exists());
 		} catch (InvalidIdentifierException e) {
-			logger.log("[ERROR] Could not upload Package: "
-					+ e.getMessage());
+		    log_error(logger, "Could not upload Package: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		} catch (HTTPException e){
-			logger.log("[ERROR] Could not upload Package: "
-						+ e.getMessage());
+		    log_error(logger, "Could not upload Package: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 			return emptyResult;
 		}
@@ -405,21 +460,41 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			}
 		}
 		
-		String[] assessmentUUIDs;
+		ArrayList<String> tools_without_permissions = new ArrayList<String>();
+		//checking for tool permissions
+		for (int i = 0; i < assessmentsToRun.size(); i++) {
+		    Tool tool = api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID); 
+            
+		    if(!api.hasToolPermission(tool.getUUIDString(), 
+		            projectUUID, 
+		            api.getPackageVersion(packageUUID, projectUUID).getPackageThing().getUUIDString())) {
+		        tools_without_permissions.add(tool.getName());
+		    }
+		}
+		
+		if (!tools_without_permissions.isEmpty()) {
+		    log_error(logger, "No permissions to use the tools: " + tools_without_permissions + 
+		            "\nUnselect these tools OR get permissons to use them", null);
+		    return emptyResult;
+		}
+		
+		ArrayList<String> assessmentUUIDs = new ArrayList<String>();
 		//Run the assessments
-		assessmentUUIDs = new String[assessmentsToRun.size()];
-		for (int i = 0; i < assessmentUUIDs.length;i++){
+		for (int i = 0; i < assessmentsToRun.size();i++){
 			try {
 				logger.log("Running Assessment (package: " + packageName + "-" + uploadVersion + 
 						", tool: " + assessmentsToRun.get(i).getToolName(api,projectUUID) + 
 						", platform: " + assessmentsToRun.get(i).getPlatformVersionName(api) + ")");		
 				
-				assessmentUUIDs[i] = api.runAssessment(api.getPackageVersion(packageUUID, projectUUID), 
-						api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID), 
-						api.getProject(projectUUID), 
-						api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
+				String arun_uuid = api.runAssessment(api.getPackageVersion(packageUUID, projectUUID), 
+				        api.getTool(assessmentsToRun.get(i).getToolUUID(), projectUUID), 
+				        api.getProject(projectUUID), 
+				        api.getPlatformVersion(assessmentsToRun.get(i).getPlatformVersionUUID())).getUUIDString();
+				
+				assessmentUUIDs.add(arun_uuid);
+				
 			} catch (Exception e) {
-				logger.log("[ERROR] Assessment failed: " + e.getMessage());
+			    log_error(logger, "Assessment failed: " + e.getMessage(), null);
 			}
 		}
 		
@@ -434,7 +509,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 		try {
 			outputPath.mkdirs();
 		} catch (IOException | InterruptedException e) {
-			logger.log("[ERROR] Could not create output directory: " + e.getMessage());
+		    log_error(logger, "Could not create output directory: " + e.getMessage(), null);
 			//build.setResult(Result.FAILURE);
 		}
 		
@@ -443,12 +518,12 @@ public class SwampPostBuild extends HealthAwarePublisher {
 			assessment_done[i] = false;
 		}
 		int all_finished = 0;
-		while(all_finished < assessmentUUIDs.length) {
+		while(all_finished < assessmentUUIDs.size()) {
 			try {
 				Thread.sleep(30000);
 				for(AssessmentRecord executionRecord : api.getAllAssessmentRecords(projectUUID)) {
-					for (int i = 0; i < assessmentUUIDs.length; i++){
-						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs[i]) 
+					for (int i = 0; i < assessmentUUIDs.size(); i++){
+						if (executionRecord.getAssessmentRunUUID().equals(assessmentUUIDs.get(i)) 
 								&& assessment_done[i] == false){
 							if (executionRecord.getAssessmentResultUUID().equals("null")) {
 								// Assessment still in progress
@@ -478,7 +553,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
 				}
 				
 			} catch (InterruptedException e) {
-				logger.log("[ERROR] Waiting for status interrupted: " + e.getMessage());
+			    log_error(logger, "Waiting for status interrupted: " + e.getMessage(), null);
 				//build.setResult(Result.FAILURE);
 				return emptyResult;
 			} catch (Exception e) {
@@ -607,16 +682,17 @@ public class SwampPostBuild extends HealthAwarePublisher {
         				return true;
         			}
     			} catch (IOException | InterruptedException e) {
-    				logger.log("[ERROR] Could not verify build file's existance: " + e.getMessage());
+    			    log_error(logger, "Could not verify build file's existance: " + e.getMessage(), null);
     			}
     		}
-			logger.log("[ERROR] Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"));
+    		log_error(logger, "Build file " + defaultBuildFiles.get(buildSystem) + " not found at " + 
+    		workspace.getRemote() + (buildDirectory.equals("") ? "" : buildDirectory + "/"), null);
 			return false;
     	}else{
     		buildFile = new FilePath(workspace,(buildDirectory.equals("") ? "" : buildDirectory + "/") + this.buildFile);
     		try {
     			if (!buildFile.exists()){
-    				logger.log("[ERROR] Build file " + buildFile.getRemote() + " not found.");
+    			    log_error(logger, "Build file " + buildFile.getRemote() + " not found.", null);
     				return false;
     			}
 			} catch (IOException | InterruptedException e) {
@@ -827,18 +903,7 @@ public class SwampPostBuild extends HealthAwarePublisher {
     }
     
     //All getters used by Jenkins to save configurations
-    public String getUsername() {
-    	return username;
-    }
-    
-    public String getPassword() {
-		return password;
-	}
-    
-    public String getHostUrl() {
-    	return hostUrl;
-    }
-    
+     
     public String getProjectUUID() {
 		return projectUUID;
 	}

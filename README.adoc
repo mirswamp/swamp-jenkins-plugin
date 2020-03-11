@@ -1,6 +1,6 @@
-:plugin-ver: 0.6.1
+:plugin-ver: 1.2.0
 = SWAMP Jenkins Plugin
-Jared Sweetland, Vamshi Basupalli, James A. Kupsch
+Jared Sweetland, Vamshi Basupalli, James A. Kupsch, Josef T. Burger
 {plugin-ver} {docdatetime}
 :toc:
 :numbered:
@@ -31,31 +31,34 @@ Jenkins plugin store, or using a .hpi file containing the plugin.
 The SWAMP Jenking Plugin can be installed directly from Jenkins using the on-line
 plugins available within Jenkins using the following steps:
 
-NOTE: Not available yet.
-
 . Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Manage Plugins_
 . Click the _Available_ tab
-. Enter *SWAMP Plugin* in the search field at the top right of the page
+. Enter *SWAMP* in the search field at the top right of the page
 . Click the install checkbox next to the SWAMP Plugin
 . Click the _install without restart_ button
 . Click the _Go back to the top page_ link
 
 == Update the Plugin
 To update the SWAMP Plugin
+
 . Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Manage Plugins_
 . Click the _Updates_ tab
-. Enter *SWAMP Plugin* in the search field at the top right of the page
+. Enter *SWAMP* in the search field at the top right of the page
 . Click the install checkbox next to the SWAMP Plugin
 . Click the _Download now and install after restart_ button
 . Click the _Go back to the top page_ link
 
-=== Install Using the Jenkins Plugin Store
-The SWAMP Jenking Plugin can be installed directly from Jenkins using the on-line
-plugins available within Jenkins using the following steps:
+[WARNING]
+.Reconfiguration required if updating from `1.0.x` or `1.1.x` versions to `1.2.x` or higher.
+=====================================================================
+Starting `1.2.0`, SWAMP plugin uses credentials API to store SWAMP credentials in Jenkins. If you are updating from `1.0.x` or `1.1.x` versions to `1.2.x` or higher, re-configuration of the SWAMP plugin is required. Please  re-configure the plugin at _Manage Jenkins_ -> _Configure System_ -> _SWAMP_.
+=====================================================================
 
-NOTE: Not available yet.
+=== Install Using the Jenkins Plugin Store
+The SWAMP Jenkins Plugin can be installed directly from Jenkins using the on-line
+plugins available within Jenkins using the following steps:
 
 . Go to your Jenkins URL in a web browser
 . Click _Manage Jenkins_ -> _Manage Plugins_
@@ -79,8 +82,38 @@ SWAMP.hpi file using the following steps:
 . Click the _install without restart_ button
 . Click the _Go back to the top page_ link
 
+=== Jenkins plugin with Swamp-In-The-Box (SiB) instances
+
+
+If you are using an SiB instance that uses a _self-signed_ SSL/TLS certificate then, the SWAMP Jenkins plugin will fail to communicate with that SiB instance. The reason being Java's security model by default does not allow communicating with a web-service that has a self-signed SSL/TLS certificate. To overcome this restriction, the web-service's self-signed SSL/TLS certificate has to be added to the Java installation's _default keystore_ on the machine that is running the Jenkins server. The following are the instructions on how to do it:
+
+. Access the SiB from the web-browser and download the SiB's self-signed certificate by following these instruction here:
+https://www.thesslstore.com/blog/how-to-view-ssl-certificate-details-in-chrome-56/
+
+. Run the following commands to add the self-signed certificate to the Java installation's keystore:
+--
+a. Change the present working directory to your Java installation directory + `jre/lib/security/`.
++
+.................
+   cd $JAVA_HOME/jre/lib/security
+.................
++
+b. Make a backup copy of the `cacerts` file
++
+.................
+   cp cacerts cacerts.original
+.................
++
+c. Add the certificate to the keystore (Assuming here that the self-signed certificate is stored on the desktop as _www.sib-swamp.org.cer_)
++
+.................
+   sudo keytool -importcert -alias sib-name -file ~/Desktop/www.sib-swamp.org.cer -keystore $PWD/cacerts
+.................
+--
+
+
 == Configure the SWAMP Jenkins Plugin
-The SWAMP Jenkins Plugin must be configured before use.
+The SWAMP Jenkins Plugin must be configured before use. Starting version `1.1.3`, SWAMP plugin uses https://wiki.jenkins.io/display/JENKINS/Credentials+Plugin[Credentials API].
 This configuration is modified on the following web interface:
 
 . Go to your Jenkins URL in a web browser
@@ -91,23 +124,38 @@ This configuration is modified on the following web interface:
 [width="80%",cols="1,3",options="header"]
 |==========================
 |Parameter | Description
-2+|*Credentials*
-|Swamp Username a| Your username to log into the SWAMP
-
-NOTE: Third party credential such as github are not supported Create and use a SWAMP Application Password instead.
-|Swamp Password | Your password to log into the SWAMP
-|SWAMP URL a| URL of SWAMP web site.
-The default is the SWAMP public instance at https://swa-csaweb-pd-01.mir-swamp.org. +
+|Swamp URL a| URL of SWAMP web site.
+The default is the SWAMP public instance at https://www.mir-swamp.org.
 If you are using SWAMP-in-a-Box, contact your administrator for the URL to use.
-|Test Connection Button | Use this button to test your credentials and URL
+2+|*Credentials*
+|Swamp Credentials| Select the SWAMP credentials from the drop-down list.
+
+If SWAMP credentials are not in the list, _Add Credentials_ by clicking on *Add* button and choosing *Jenkins (Jenkins Credentials Provider)*.
+
+In the *Add Credentials* page:
+
+1. Choose a *Domain* to store SWAMP credentials. This is _optional_, default is _Global Credentials (unrestricted)_. Users can create a _domain_ to group credentials by going to _Jenkins_ -> _Credentials_ and selecting _Add Domain_ in the _Jenkins_ drop-down list.
+
+2. For *Kind*, Select _Username with password_ from the drop-down list.
+
+3. For *Scope*, choose *Global*.
+
+4. Enter SWAMP username and password in the *Username* and *Password* text boxes.
+
+3. In the *Description* textbox, enter _SWAMP_ or any string that lets you distinguish _SWAMP_ credentials.
+
+4. Leave the *ID* text-box empty.
+
+5. Save the credentials by clicking on the *Add* button.
+
+NOTE: If you use _third party credential_ such as _github_ to log into SWAMP then, create and use a SWAMP https://www.mir-swamp.org/#my-account/passwords[Application Password].
+
+|Test Connection Button | Use this button to validate the credentials and URL that you have entered
 2+|*Global Project Settings*
 |Default Project | The default project to be used for each upload
 Can be modified in build settings
 2+|*Miscellaneous Options*
 |Verbose Mode | Provide extra output for status updates and error checking
-|Run even if build fails? | If checked, the package will be uploaded and assessed even if the build fails
-|Run Assessments in Background | If selected, you will not be able to view the results of the assessments in Jenkins. +
-Use this option if you use a SWAMP viewer.
 |==========================
 
 == Use the SWAMP Jenkins Plugin
@@ -133,7 +181,7 @@ $date:: current date
 $git:: most recent git commit id
 $svn:: most recent svn commit id
 
-If you do not update the version number each build (either using any of the above options or manually updating the version) then submissions will have the same version and be difficult to destinguish in the user interface.
+If you do not update the version number each build (either using any of the above options or manually updating the version) then submissions will have the same version and be difficult to distinguish in the user interface.
 |Package Language | The language that your package uses.
 2+|*Build Settings*
 |Build System | Select the build system your project uses.
